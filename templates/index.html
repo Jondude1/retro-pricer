@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Retro Price Check</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RetroPrice">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<style>
+  :root {
+    --bg:       #0f0f0f;
+    --card:     #1a1a1a;
+    --border:   #2a2a2a;
+    --accent:   #00e5a0;
+    --danger:   #ff4d4d;
+    --warn:     #ffaa00;
+    --text:     #f0f0f0;
+    --muted:    #888;
+    --steal:    #00e5a0;
+    --good:     #4caf50;
+    --fair:     #ffaa00;
+    --pass:     #ff4d4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+
+  /* Header */
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 1.1rem; color: var(--accent); font-weight: 700; letter-spacing: -0.3px; }
+  header span { font-size: 0.75rem; color: var(--muted); }
+
+  /* Search bar */
+  .search-area { padding: 16px; background: var(--card); border-bottom: 1px solid var(--border); }
+  .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; color: var(--text); font-size: 1rem; outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--accent); }
+  .btn-scan { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 12px 14px; font-size: 1.2rem; cursor: pointer; font-weight: 700; }
+  .btn-scan:active { opacity: 0.8; }
+  .console-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 0.9rem; }
+  .btn-search { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-search:active { opacity: 0.8; }
+
+  /* Scan panel */
+  #scan-panel { display: none; padding: 16px; background: #111; border-bottom: 1px solid var(--border); }
+  #scan-panel h3 { font-size: 0.85rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  #scan-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid var(--border); }
+  .scan-status { font-size: 0.9rem; color: var(--muted); margin: 8px 0; min-height: 20px; }
+  .scan-status.active { color: var(--accent); }
+  .photo-request { background: #1e2a1e; border: 1px solid #2a4a2a; border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: #90ee90; margin: 8px 0; display: none; }
+  .btn-another-photo { width: 100%; background: #1a3a2a; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 10px; font-size: 0.9rem; cursor: pointer; margin-top: 6px; display: none; }
+
+  /* Results list */
+  #results { padding: 8px 0; }
+  .result-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .result-item:active { background: var(--card); }
+  .result-name { font-size: 0.95rem; font-weight: 600; }
+  .result-console { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .result-price { text-align: right; }
+  .result-price .loose { font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+  .result-price .cib { font-size: 0.75rem; color: var(--muted); }
+
+  /* Game detail panel */
+  #detail { display: none; }
+  .detail-header { padding: 16px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+  .detail-header h2 { font-size: 1rem; font-weight: 700; flex: 1; }
+  .detail-console { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+  .btn-back { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+
+  /* Price cards */
+  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+  .price-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .price-card.highlight { border-color: var(--accent); }
+  .price-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .price-value { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+  .price-value.accent { color: var(--accent); }
+  .price-note { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+
+  /* Condition badge */
+  .condition-badge { display: inline-block; background: #1a2a1a; border: 1px solid #3a5a3a; color: #90ee90; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; margin: 0 16px 4px; }
+  .condition-notes { font-size: 0.75rem; color: var(--muted); padding: 0 16px 12px; }
+
+  /* DK Oldies */
+  .dko-row { margin: 0 16px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .dko-label { font-size: 0.75rem; color: var(--muted); }
+  .dko-price { font-size: 1.1rem; font-weight: 700; }
+  .dko-link { font-size: 0.7rem; color: var(--accent); text-decoration: none; }
+
+  /* Deal calculator */
+  .calc-section { padding: 0 16px 16px; }
+  .calc-section label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .pawn-input-row { display: flex; gap: 10px; align-items: center; }
+  .pawn-prefix { font-size: 1.2rem; color: var(--muted); }
+  .pawn-input { flex: 1; background: var(--bg); border: 2px solid var(--border); border-radius: 8px; padding: 14px 12px; color: var(--text); font-size: 1.3rem; font-weight: 700; outline: none; transition: border-color 0.2s; }
+  .pawn-input:focus { border-color: var(--accent); }
+
+  /* Deal rating */
+  #deal-result { margin: 12px 0 0; }
+  .deal-card { border-radius: 10px; padding: 16px; margin-bottom: 8px; }
+  .deal-card.steal  { background: #0d2a1e; border: 1px solid var(--steal); }
+  .deal-card.good   { background: #0d1f0d; border: 1px solid var(--good); }
+  .deal-card.fair   { background: #2a1f00; border: 1px solid var(--warn); }
+  .deal-card.pass   { background: #2a0d0d; border: 1px solid var(--danger); }
+  .deal-top { display: flex; justify-content: space-between; align-items: center; }
+  .deal-emoji-label { font-size: 1rem; font-weight: 800; }
+  .deal-condition { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .deal-profit { text-align: right; }
+  .deal-profit-val { font-size: 1.2rem; font-weight: 800; }
+  .deal-margin { font-size: 0.75rem; color: var(--muted); }
+
+  /* Recent lookups */
+  .section-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 16px 8px; }
+  .history-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
+  .history-item:active { background: var(--card); }
+  .history-name { font-size: 0.9rem; }
+  .history-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .history-price { font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+
+  /* Loading spinner */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+  .loading-row { padding: 20px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+
+  /* Resale notes */
+  .resale-notes { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin: 0 16px 16px; font-size: 0.82rem; color: #aaa; line-height: 1.5; }
+  .resale-notes strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:1.4rem">🕹️</div>
+  <div>
+    <h1>Retro Price Check</h1>
+    <span>Powered by PriceCharting + DK Oldies</span>
+  </div>
+</header>
+
+<!-- Search -->
+<div class="search-area">
+  <div class="search-row">
+    <input id="q" type="search" class="search-input" placeholder="Game title…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn-scan" id="btn-open-scan" title="Scan with camera">📷</button>
+  </div>
+  <select id="console-select" class="console-select">
+    <option value="">All Consoles</option>
+    {% for key, info in consoles.items() %}
+    <option value="{{ key }}">{{ info.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn-search" id="btn-search">Search</button>
+</div>
+
+<!-- Camera Scan Panel -->
+<div id="scan-panel">
+  <h3>📷 Scan a Game</h3>
+  <img id="scan-preview" src="" alt="Preview">
+  <p class="scan-status" id="scan-status">Take a photo of the game or box — Claude will identify it and assess condition.</p>
+  <div class="photo-request" id="photo-request-box"></div>
+  <input type="file" id="scan-file" accept="image/*" capture="environment" style="display:none">
+  <button class="btn-search" id="btn-take-photo">📸 Take Photo</button>
+  <button class="btn-another-photo" id="btn-another-photo">📸 Take Another Photo</button>
+</div>
+
+<!-- Main content area -->
+<div id="main">
+  <!-- Search results -->
+  <div id="results">
+    {% if history %}
+    <div class="section-title">Recently Looked Up</div>
+    {% for h in history %}
+    <div class="history-item" onclick="loadGame('{{ h.pc_console }}','{{ h.slug }}','{{ h.game_title or "" }}','')">
+      <div>
+        <div class="history-name">{{ h.game_title or h.slug }}</div>
+        <div class="history-meta">{{ h.pc_console }}</div>
+      </div>
+      {% if h.loose_price %}
+      <div class="history-price">${{ "%.2f"|format(h.loose_price/100) }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Game detail (hidden until selected) -->
+  <div id="detail">
+    <div class="detail-header">
+      <div>
+        <h2 id="detail-title">—</h2>
+        <div class="detail-console" id="detail-console">—</div>
+      </div>
+      <button class="btn-back" onclick="showSearch()">← Back</button>
+    </div>
+
+    <!-- Condition (from scan, if used) -->
+    <div id="condition-row" class="hidden">
+      <div style="padding: 12px 16px 0;">
+        <span class="condition-badge" id="condition-badge"></span>
+        <span style="font-size:0.75rem; color:var(--muted); margin-left:6px;" id="condition-grade"></span>
+      </div>
+      <div class="condition-notes" id="condition-notes"></div>
+      <div class="resale-notes" id="resale-notes-box"><strong>Resale note:</strong> <span id="resale-notes"></span></div>
+    </div>
+
+    <!-- Price grid -->
+    <div class="prices-grid" id="prices-grid">
+      <div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>
+    </div>
+
+    <!-- DK Oldies -->
+    <div class="dko-row" id="dko-row" style="display:none">
+      <div>
+        <div class="dko-label">DK Oldies (retail)</div>
+        <div class="dko-price" id="dko-price">—</div>
+      </div>
+      <a class="dko-link" id="dko-link" href="#" target="_blank">View ↗</a>
+    </div>
+
+    <!-- Deal calculator -->
+    <div class="calc-section">
+      <label>What are they asking?</label>
+      <div class="pawn-input-row">
+        <span class="pawn-prefix">$</span>
+        <input type="number" id="pawn-price" class="pawn-input" placeholder="0.00" min="0" step="0.50" inputmode="decimal">
+      </div>
+      <div id="deal-result"></div>
+    </div>
+
+    <!-- PriceCharting link -->
+    <div style="padding: 0 16px 24px; text-align:center;">
+      <a id="pc-link" href="#" target="_blank" style="font-size:0.75rem; color:var(--muted); text-decoration:none;">View full price history on PriceCharting ↗</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentPrices = {};
+let scanContext   = null;
+let scanPhotoCount = 0;
+const MAX_SCAN_PHOTOS = 3;
+
+// ── Search ─────────────────────────────────────────────────────────────────
+document.getElementById("btn-search").addEventListener("click", doSearch);
+document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+
+async function doSearch() {
+  const q = document.getElementById("q").value.trim();
+  const console_key = document.getElementById("console-select").value;
+  if (!q) return;
+  hideScanPanel();
+  showSearch();
+
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching…</div>';
+
+  const params = new URLSearchParams({ q });
+  if (console_key) params.append("console", console_key);
+
+  try {
+    const res = await fetch("/search?" + params);
+    const data = await res.json();
+    renderResults(data, console_key);
+  } catch (e) {
+    resultsDiv.innerHTML = '<div class="loading-row" style="color:var(--danger)">Search failed — check connection</div>';
+  }
+}
+
+function renderResults(results, console_key) {
+  const resultsDiv = document.getElementById("results");
+  if (!results.length) {
+    resultsDiv.innerHTML = '<div class="loading-row">No results found. Try a different spelling.</div>';
+    return;
+  }
+  resultsDiv.innerHTML = results.map(r => `
+    <div class="result-item" onclick="loadGame('${esc(r.pc_console)}','${esc(r.slug)}','${esc(r.name)}','${esc(console_key)}')">
+      <div>
+        <div class="result-name">${esc(r.name)}</div>
+        <div class="result-console">${esc(r.console_name)}</div>
+      </div>
+      <div class="result-price">
+        ${r.loose_cents ? `<div class="loose">$${cents(r.loose_cents)}</div>` : ""}
+        ${r.cib_cents   ? `<div class="cib">CIB $${cents(r.cib_cents)}</div>` : ""}
+      </div>
+    </div>
+  `).join("");
+}
+
+// ── Game detail ────────────────────────────────────────────────────────────
+async function loadGame(pc_console, slug, name, console_key, scanResult) {
+  showDetail();
+  document.getElementById("detail-title").textContent   = name || slug.replace(/-/g," ");
+  document.getElementById("detail-console").textContent = pc_console.replace(/-/g," ");
+  document.getElementById("prices-grid").innerHTML      = '<div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>';
+  document.getElementById("dko-row").style.display      = "none";
+  document.getElementById("deal-result").innerHTML      = "";
+  document.getElementById("pawn-price").value           = "";
+  document.getElementById("condition-row").classList.add("hidden");
+
+  // Show condition from scan if provided
+  if (scanResult && scanResult.identified) {
+    showCondition(scanResult);
+  }
+
+  const params = new URLSearchParams({ pc_console, slug, name, console_key });
+  try {
+    const res  = await fetch("/prices?" + params);
+    const data = await res.json();
+    renderPrices(data, pc_console, slug);
+  } catch (e) {
+    document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="color:var(--danger)">Failed to load prices</div>';
+  }
+}
+
+function showCondition(scanResult) {
+  const condMap = {
+    loose: "Loose (Cart Only)", cib: "Complete in Box", cib_incomplete: "Incomplete CIB",
+    new_sealed: "New/Sealed", damaged: "Damaged", unknown: "Condition Unknown"
+  };
+  document.getElementById("condition-badge").textContent  = condMap[scanResult.condition] || scanResult.condition;
+  document.getElementById("condition-grade").textContent  = scanResult.condition_grade ? `· ${scanResult.condition_grade}` : "";
+  document.getElementById("condition-notes").textContent  = scanResult.condition_notes || "";
+  document.getElementById("resale-notes").textContent     = scanResult.resale_notes || "";
+  document.getElementById("condition-row").classList.remove("hidden");
+  document.getElementById("resale-notes-box").style.display = scanResult.resale_notes ? "" : "none";
+}
+
+function renderPrices(data, pc_console, slug) {
+  const prices = data.prices || {};
+  currentPrices = prices;
+
+  document.getElementById("detail-title").textContent   = data.title || document.getElementById("detail-title").textContent;
+  document.getElementById("detail-console").textContent = pc_console.replace(/-/g," ");
+
+  if (data.pc_url) {
+    document.getElementById("pc-link").href = "https://www.pricecharting.com" + (data.pc_url.startsWith("/") ? "" : "/") + (data.pc_url.includes("pricecharting.com") ? new URL(data.pc_url).pathname : data.pc_url);
+    document.getElementById("pc-link").href = data.pc_url;
+  }
+
+  const cards = [
+    ["loose",   "Loose",    true ],
+    ["cib",     "CIB",      false],
+    ["new",     "New/Sealed", false],
+    ["graded",  "Graded",   false],
+  ].filter(([k]) => prices[k]);
+
+  if (!cards.length) {
+    document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="grid-column:1/-1">No price data found</div>';
+    return;
+  }
+
+  document.getElementById("prices-grid").innerHTML = cards.map(([k, label, hi]) => `
+    <div class="price-card ${hi ? "highlight" : ""}">
+      <div class="price-label">${label}</div>
+      <div class="price-value ${hi ? "accent" : ""}">$${cents(prices[k])}</div>
+      <div class="price-note">market avg</div>
+    </div>
+  `).join("");
+
+  // DK Oldies
+  if (data.dk_price) {
+    document.getElementById("dko-price").textContent = "$" + cents(data.dk_price);
+    document.getElementById("dko-row").style.display  = "";
+    if (data.dk_url) document.getElementById("dko-link").href = data.dk_url.startsWith("http") ? data.dk_url : "https://www.dkoldies.com" + data.dk_url;
+  }
+
+  // Re-run deal calc if user already entered a price
+  const pawnVal = document.getElementById("pawn-price").value;
+  if (pawnVal) updateDeal(parseFloat(pawnVal));
+}
+
+// ── Deal calculator ────────────────────────────────────────────────────────
+document.getElementById("pawn-price").addEventListener("input", e => {
+  const v = parseFloat(e.target.value);
+  if (!isNaN(v) && v > 0) updateDeal(v);
+  else document.getElementById("deal-result").innerHTML = "";
+});
+
+async function updateDeal(dollars) {
+  const pawnCents = Math.round(dollars * 100);
+  const params = new URLSearchParams({ pawn: pawnCents });
+  if (currentPrices.loose)  params.append("loose", currentPrices.loose);
+  if (currentPrices.cib)    params.append("cib",   currentPrices.cib);
+  if (currentPrices.new)    params.append("new",   currentPrices.new);
+
+  const res  = await fetch("/deal?" + params);
+  const data = await res.json();
+
+  const condOrder = [
+    ["loose", "If selling loose"],
+    ["cib",   "If selling CIB"],
+    ["new",   "If selling new/sealed"],
+  ];
+
+  document.getElementById("deal-result").innerHTML = condOrder
+    .filter(([k]) => data[k])
+    .map(([k, sublabel]) => {
+      const d = data[k];
+      return `
+        <div class="deal-card ${d.tag}">
+          <div class="deal-top">
+            <div>
+              <div class="deal-emoji-label">${d.emoji} ${d.label}</div>
+              <div class="deal-condition">${sublabel}</div>
+            </div>
+            <div class="deal-profit">
+              <div class="deal-profit-val" style="color:${d.profit > 0 ? 'var(--steal)' : 'var(--danger)'}">
+                ${d.profit >= 0 ? "+" : ""}$${cents(d.profit)}
+              </div>
+              <div class="deal-margin">${d.margin_pct}% margin</div>
+            </div>
+          </div>
+        </div>`;
+    }).join("") || '<div class="loading-row">Enter a price above</div>';
+}
+
+// ── Camera Scan ────────────────────────────────────────────────────────────
+document.getElementById("btn-open-scan").addEventListener("click", () => {
+  const panel = document.getElementById("scan-panel");
+  panel.style.display = panel.style.display === "none" || !panel.style.display ? "block" : "none";
+  scanContext = null;
+  scanPhotoCount = 0;
+});
+
+document.getElementById("btn-take-photo").addEventListener("click", () => {
+  document.getElementById("scan-file").click();
+});
+
+document.getElementById("btn-another-photo").addEventListener("click", () => {
+  document.getElementById("scan-file").click();
+});
+
+document.getElementById("scan-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Preview
+  const preview = document.getElementById("scan-preview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+
+  const status    = document.getElementById("scan-status");
+  const photoReq  = document.getElementById("photo-request-box");
+  const btnAnother = document.getElementById("btn-another-photo");
+
+  status.className = "scan-status active";
+  status.innerHTML = '<span class="spinner"></span>Analyzing with Claude…';
+  photoReq.style.display = "none";
+  btnAnother.style.display = "none";
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  let endpoint = "/scan";
+  if (scanContext && scanPhotoCount > 0) {
+    endpoint = "/scan/followup";
+    formData.append("context", JSON.stringify(scanContext));
+  }
+
+  try {
+    const res  = await fetch(endpoint, { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (data.error) {
+      status.className = "scan-status";
+      status.textContent = "Error: " + data.error;
+      return;
+    }
+
+    scanContext = data;
+    scanPhotoCount++;
+
+    if (!data.identified) {
+      status.className = "scan-status";
+      status.textContent = "Couldn't identify the game. Try a clearer photo.";
+      btnAnother.style.display = "block";
+      return;
+    }
+
+    if (data.needs_more_photos && scanPhotoCount < MAX_SCAN_PHOTOS) {
+      status.className = "scan-status";
+      status.textContent = `Identified: ${data.game_name} (${data.console_display || ""})`;
+      photoReq.textContent = "📸 " + data.photo_request;
+      photoReq.style.display = "block";
+      btnAnother.style.display = "block";
+      btnAnother.textContent  = "📸 Take Another Photo";
+      return;
+    }
+
+    // Got enough info — load the game
+    status.className  = "scan-status";
+    status.textContent = `Found: ${data.game_name} · ${data.condition_grade || ""} ${conditionLabel(data.condition)}`;
+    photoReq.style.display = "none";
+    btnAnother.style.display = "none";
+
+    // Pre-fill search
+    document.getElementById("q").value = data.game_name;
+    if (data.console_key) document.getElementById("console-select").value = data.console_key;
+
+    // Run the search and auto-pick the first matching result
+    const params = new URLSearchParams({ q: data.game_name });
+    if (data.console_key) params.append("console", data.console_key);
+
+    const searchRes = await fetch("/search?" + params);
+    const results   = await searchRes.json();
+
+    if (results.length > 0) {
+      const top = results[0];
+      showDetail();
+      hideScanPanel();
+      loadGame(top.pc_console, top.slug, top.name, data.console_key || "", data);
+    } else {
+      hideScanPanel();
+      renderResults(results, data.console_key || "");
+      showSearch();
+    }
+  } catch (err) {
+    status.className  = "scan-status";
+    status.textContent = "Scan failed: " + err.message;
+  }
+
+  // Reset file input so same file can be re-picked
+  e.target.value = "";
+});
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showDetail() {
+  document.getElementById("results").style.display = "none";
+  document.getElementById("detail").style.display  = "block";
+}
+function showSearch() {
+  document.getElementById("results").style.display = "block";
+  document.getElementById("detail").style.display  = "none";
+}
+function hideScanPanel() {
+  document.getElementById("scan-panel").style.display = "none";
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function cents(c) {
+  if (c == null) return "—";
+  const abs = Math.abs(c);
+  return (c < 0 ? "-" : "") + (abs / 100).toFixed(2);
+}
+function esc(s) {
+  return (s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+function conditionLabel(c) {
+  const m = { loose:"Loose", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"" };
+  return m[c] || c || "";
+}
+
+// ── Service Worker registration ────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/static/sw.js")
+      .catch(err => console.warn("SW registration failed:", err));
+  });
+}
+</script>
+</body>
+</html>
