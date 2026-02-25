@@ -11,6 +11,9 @@ import scraper, db
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload
 
+# Init DB on startup (works for both gunicorn and direct run)
+db.init()
+
 # ---------------------------------------------------------------------------
 # Anthropic API key — set ANTHROPIC_API_KEY env var on Render.
 # Falls back to reading from local openclaw.json for dev.
