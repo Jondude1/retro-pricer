@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Retro Price Check</title>
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#0f0f0f">
@@ -13,169 +13,244 @@
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <style>
   :root {
-    --bg:       #0f0f0f;
-    --card:     #1a1a1a;
-    --border:   #2a2a2a;
-    --accent:   #00e5a0;
-    --danger:   #ff4d4d;
-    --warn:     #ffaa00;
-    --text:     #f0f0f0;
-    --muted:    #888;
-    --steal:    #00e5a0;
-    --gold:     #FFD700;
-    --good:     #4caf50;
-    --fair:     #ffaa00;
-    --pass:     #ff4d4d;
+    --bg:     #0f0f0f;
+    --card:   #1a1a1a;
+    --card2:  #222;
+    --border: #2a2a2a;
+    --accent: #00e5a0;
+    --danger: #ff4d4d;
+    --warn:   #ffaa00;
+    --text:   #f0f0f0;
+    --muted:  #777;
+    --steal:  #00e5a0;
+    --good:   #4caf50;
+    --fair:   #ffaa00;
+    --pass:   #ff4d4d;
+    --gold:   #FFD700;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overscroll-behavior: none; }
 
-  /* Header */
-  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
-  header h1 { font-size: 1.1rem; color: var(--accent); font-weight: 700; letter-spacing: -0.3px; }
-  header span { font-size: 0.75rem; color: var(--muted); }
+  /* ── Header ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 200;
+  }
+  header h1 { font-size: 1.05rem; color: var(--accent); font-weight: 800; letter-spacing: -0.3px; flex: 1; }
+  .btn-scan-header {
+    background: var(--accent); color: #000; border: none;
+    border-radius: 10px; padding: 9px 14px; font-size: 1.1rem;
+    cursor: pointer; font-weight: 700; line-height: 1;
+    flex-shrink: 0;
+  }
+  .btn-scan-header:active { opacity: 0.75; }
 
-  /* Search bar */
-  .search-area { padding: 16px; background: var(--card); border-bottom: 1px solid var(--border); }
-  .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .search-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; color: var(--text); font-size: 1rem; outline: none; transition: border-color 0.2s; }
+  /* ── Search bar ── */
+  .search-bar {
+    display: flex; gap: 8px; align-items: center;
+    padding: 10px 14px 0;
+    background: var(--card);
+  }
+  .search-input {
+    flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 13px 14px; color: var(--text);
+    font-size: 1rem; outline: none; min-width: 0;
+    transition: border-color 0.15s;
+  }
   .search-input:focus { border-color: var(--accent); }
-  .btn-scan { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 12px 14px; font-size: 1.2rem; cursor: pointer; font-weight: 700; }
-  .btn-scan:active { opacity: 0.8; }
-  .console-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 0.9rem; }
-  .btn-search { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
-  .btn-search:active { opacity: 0.8; }
+  .btn-go {
+    background: var(--accent); color: #000; border: none;
+    border-radius: 10px; padding: 13px 18px; font-size: 1rem;
+    font-weight: 800; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-go:active { opacity: 0.75; }
 
-  /* Scan panel */
-  #scan-panel { display: none; padding: 16px; background: #111; border-bottom: 1px solid var(--border); }
-  #scan-panel h3 { font-size: 0.85rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  #scan-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid var(--border); }
+  /* ── Console chips ── */
+  .chip-scroll {
+    display: flex; gap: 7px; overflow-x: auto; padding: 10px 14px 12px;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .chip-scroll::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0; background: var(--bg); border: 1.5px solid var(--border);
+    color: var(--muted); border-radius: 20px; padding: 6px 13px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .chip.active, .chip:active {
+    border-color: var(--accent); color: var(--accent); background: #0d2a1e;
+  }
+
+  /* ── Scan panel ── */
+  #scan-panel { display: none; padding: 14px; background: #111; border-bottom: 1px solid var(--border); }
+  #scan-panel h3 { font-size: 0.8rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  #scan-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; display: none; margin-bottom: 10px; border: 1px solid var(--border); }
   .scan-status { font-size: 0.9rem; color: var(--muted); margin: 8px 0; min-height: 20px; }
   .scan-status.active { color: var(--accent); }
   .photo-request { background: #1e2a1e; border: 1px solid #2a4a2a; border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: #90ee90; margin: 8px 0; display: none; }
-  .btn-another-photo { width: 100%; background: #1a3a2a; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 10px; font-size: 0.9rem; cursor: pointer; margin-top: 6px; display: none; }
+  .btn-photo { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 4px; }
+  .btn-photo:active { opacity: 0.75; }
+  .btn-photo-2 { width: 100%; background: #1a3a2a; border: 1.5px solid var(--accent); color: var(--accent); border-radius: 10px; padding: 12px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 8px; display: none; }
 
-  /* Results list */
-  #results { padding: 8px 0; }
-  .result-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  /* ── Results ── */
+  #results { padding-bottom: 24px; }
+  .result-item {
+    padding: 15px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; gap: 12px; min-height: 64px;
+    transition: background 0.1s;
+  }
   .result-item:active { background: var(--card); }
-  .result-name { font-size: 0.95rem; font-weight: 600; }
-  .result-console { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-  .result-price { text-align: right; }
-  .result-price .top-price { font-size: 0.95rem; font-weight: 800; color: var(--accent); }
+  .result-left { flex: 1; min-width: 0; }
+  .result-name { font-size: 0.97rem; font-weight: 700; line-height: 1.25; }
+  .result-console { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+  .result-price { text-align: right; flex-shrink: 0; }
+  .result-price .top-price { font-size: 1.05rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
   .result-price .top-price.gold { color: var(--gold); }
-  .result-price .price-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-top: 1px; }
+  .result-price .price-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-top: 2px; }
+  .section-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 14px 6px; }
 
-  /* Game detail panel */
+  /* ── Detail ── */
   #detail { display: none; }
-  .detail-header { padding: 16px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
-  .detail-header h2 { font-size: 1rem; font-weight: 700; flex: 1; }
-  .detail-console { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
-  .btn-back { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+  .detail-header {
+    padding: 13px 14px; background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 53px; z-index: 100;
+  }
+  .btn-back {
+    background: none; border: 1.5px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 7px 12px; font-size: 0.85rem;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-back:active { background: var(--card2); }
+  .detail-title-wrap { flex: 1; min-width: 0; }
+  .detail-title-wrap h2 { font-size: 0.95rem; font-weight: 700; line-height: 1.2; }
+  .detail-console { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
 
-  /* Price cards */
-  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
-  .price-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
-  .price-card.highlight { border-color: var(--accent); }
-  .price-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .price-value { font-size: 1.4rem; font-weight: 800; color: var(--text); }
-  .price-value.accent { color: var(--accent); }
-  .price-note { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+  /* ── Condition badge ── */
+  .condition-row { padding: 12px 14px 4px; }
+  .condition-badge { display: inline-block; background: #1a2a1a; border: 1px solid #3a5a3a; color: #90ee90; border-radius: 20px; padding: 5px 12px; font-size: 0.78rem; font-weight: 700; }
+  .condition-grade { font-size: 0.72rem; color: var(--muted); margin-left: 6px; }
+  .condition-notes { font-size: 0.78rem; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+  .resale-notes { font-size: 0.78rem; color: #aaa; margin-top: 8px; line-height: 1.45; }
+  .resale-notes strong { color: var(--text); }
 
-  /* Condition badge */
-  .condition-badge { display: inline-block; background: #1a2a1a; border: 1px solid #3a5a3a; color: #90ee90; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; margin: 0 16px 4px; }
-  .condition-notes { font-size: 0.75rem; color: var(--muted); padding: 0 16px 12px; }
+  /* ── Price grid ── */
+  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px 14px; }
+  .price-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px; text-align: center; }
+  .price-card.hi { border-color: var(--accent); }
+  .price-card .p-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .price-card .p-val { font-size: 1.35rem; font-weight: 900; }
+  .price-card.hi .p-val { color: var(--accent); }
+  .price-card .p-note { font-size: 0.65rem; color: var(--muted); margin-top: 3px; }
 
-  /* DK Oldies */
-  .dko-row { margin: 0 16px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
-  .dko-label { font-size: 0.75rem; color: var(--muted); }
-  .dko-price { font-size: 1.1rem; font-weight: 700; }
-  .dko-link { font-size: 0.7rem; color: var(--accent); text-decoration: none; }
+  /* ── DK rows ── */
+  .dko-section { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .dko-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .dko-card.buy { border-color: #00e5a044; background: #0a1f18; }
+  .dko-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 3px; }
+  .dko-price { font-size: 1.15rem; font-weight: 800; }
+  .dko-card.buy .dko-price { color: var(--accent); }
+  .dko-link { font-size: 0.72rem; color: var(--accent); text-decoration: none; }
 
-  /* Deal calculator */
-  .calc-section { padding: 0 16px 16px; }
-  .calc-section label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .pawn-input-row { display: flex; gap: 10px; align-items: center; }
-  .pawn-prefix { font-size: 1.2rem; color: var(--muted); }
-  .pawn-input { flex: 1; background: var(--bg); border: 2px solid var(--border); border-radius: 8px; padding: 14px 12px; color: var(--text); font-size: 1.3rem; font-weight: 700; outline: none; transition: border-color 0.2s; }
+  /* ── Deal calc ── */
+  .calc-section { padding: 4px 14px 16px; }
+  .calc-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; margin-top: 4px; }
+  .pawn-row { display: flex; align-items: center; gap: 8px; }
+  .pawn-prefix { font-size: 1.4rem; color: var(--muted); font-weight: 300; }
+  .pawn-input {
+    flex: 1; background: var(--bg); border: 2px solid var(--border);
+    border-radius: 10px; padding: 15px 12px; color: var(--text);
+    font-size: 1.5rem; font-weight: 800; outline: none;
+    transition: border-color 0.15s;
+  }
   .pawn-input:focus { border-color: var(--accent); }
 
-  /* Deal rating */
-  #deal-result { margin: 12px 0 0; }
-  .deal-card { border-radius: 10px; padding: 16px; margin-bottom: 8px; }
-  .deal-card.steal  { background: #0d2a1e; border: 1px solid var(--steal); }
-  .deal-card.good   { background: #0d1f0d; border: 1px solid var(--good); }
-  .deal-card.fair   { background: #2a1f00; border: 1px solid var(--warn); }
-  .deal-card.pass   { background: #2a0d0d; border: 1px solid var(--danger); }
+  /* ── Deal cards ── */
+  #deal-result { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .deal-card { border-radius: 12px; padding: 14px 16px; }
+  .deal-card.steal { background: #0d2a1e; border: 1.5px solid var(--steal); }
+  .deal-card.good  { background: #0d1f0d; border: 1.5px solid var(--good); }
+  .deal-card.fair  { background: #2a1f00; border: 1.5px solid var(--warn); }
+  .deal-card.pass  { background: #2a0d0d; border: 1.5px solid var(--danger); }
   .deal-top { display: flex; justify-content: space-between; align-items: center; }
-  .deal-emoji-label { font-size: 1rem; font-weight: 800; }
-  .deal-condition { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-  .deal-profit { text-align: right; }
-  .deal-profit-val { font-size: 1.2rem; font-weight: 800; }
-  .deal-margin { font-size: 0.75rem; color: var(--muted); }
+  .deal-verdict { font-size: 1.05rem; font-weight: 800; }
+  .deal-cond { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .deal-profit-val { font-size: 1.25rem; font-weight: 900; text-align: right; }
+  .deal-margin { font-size: 0.72rem; color: var(--muted); text-align: right; }
 
-  /* Recent lookups */
-  .section-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 16px 8px; }
-  .history-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
+  /* ── PC link ── */
+  .pc-link-row { padding: 4px 14px 28px; text-align: center; }
+  .pc-link-row a { font-size: 0.72rem; color: var(--muted); text-decoration: none; }
+
+  /* ── History ── */
+  .history-item {
+    padding: 13px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; min-height: 56px;
+  }
   .history-item:active { background: var(--card); }
-  .history-name { font-size: 0.9rem; }
-  .history-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-  .history-price { font-size: 0.85rem; color: var(--accent); font-weight: 700; }
+  .history-name { font-size: 0.92rem; font-weight: 600; }
+  .history-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .history-price { font-size: 0.9rem; color: var(--accent); font-weight: 800; }
 
-  /* Loading spinner */
-  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  /* ── Utility ── */
+  .spinner { display: inline-block; width: 17px; height: 17px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-
+  .loading-row { padding: 24px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
   .hidden { display: none !important; }
-  .loading-row { padding: 20px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
-
-  /* Resale notes */
-  .resale-notes { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin: 0 16px 16px; font-size: 0.82rem; color: #aaa; line-height: 1.5; }
-  .resale-notes strong { color: var(--text); }
 </style>
 </head>
 <body>
 
 <header>
-  <div style="font-size:1.4rem">🕹️</div>
-  <div>
-    <h1>Retro Price Check</h1>
-    <span>Powered by PriceCharting + DK Oldies</span>
-  </div>
+  <div style="font-size:1.3rem">🕹️</div>
+  <h1>Retro Price Check</h1>
+  <button class="btn-scan-header" id="btn-open-scan" title="Scan with camera">📷</button>
 </header>
 
 <!-- Search -->
-<div class="search-area">
-  <div class="search-row">
-    <input id="q" type="search" class="search-input" placeholder="Game title…" autocomplete="off" autocorrect="off" spellcheck="false">
-    <button class="btn-scan" id="btn-open-scan" title="Scan with camera">📷</button>
-  </div>
-  <select id="console-select" class="console-select">
-    <option value="">All Consoles</option>
-    {% for key, info in consoles.items() %}
-    <option value="{{ key }}">{{ info.name }}</option>
-    {% endfor %}
-  </select>
-  <button class="btn-search" id="btn-search">Search</button>
+<div class="search-bar">
+  <input id="q" type="search" class="search-input" placeholder="Game title…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+  <button class="btn-go" id="btn-search">Search</button>
+</div>
+
+<!-- Console chips -->
+<div class="chip-scroll" id="chip-scroll">
+  <div class="chip active" data-console="">All</div>
+  {% for key, info in consoles.items() %}
+  <div class="chip" data-console="{{ key }}">{{ info.name }}</div>
+  {% endfor %}
 </div>
 
 <!-- Camera Scan Panel -->
 <div id="scan-panel">
   <h3>📷 Scan a Game</h3>
   <img id="scan-preview" src="" alt="Preview">
-  <p class="scan-status" id="scan-status">Take a photo of the game or box — Claude will identify it and assess condition.</p>
+  <p class="scan-status" id="scan-status">Take a photo — Claude will identify the game and assess condition.</p>
   <div class="photo-request" id="photo-request-box"></div>
   <input type="file" id="scan-file" accept="image/*" capture="environment" style="display:none">
-  <button class="btn-search" id="btn-take-photo">📸 Take Photo</button>
-  <button class="btn-another-photo" id="btn-another-photo">📸 Take Another Photo</button>
+  <button class="btn-photo" id="btn-take-photo">📸 Take Photo</button>
+  <button class="btn-photo-2" id="btn-another-photo">📸 Take Another Photo</button>
 </div>
 
-<!-- Main content area -->
+<!-- Main area -->
 <div id="main">
-  <!-- Search results -->
+
+  <!-- Search results / history -->
   <div id="results">
     {% if history %}
-    <div class="section-title">Recently Looked Up</div>
+    <div class="section-label">Recently Looked Up</div>
     {% for h in history %}
     <div class="history-item" onclick="loadGame('{{ h.pc_console }}','{{ h.slug }}','{{ h.game_title or "" }}','')">
       <div>
@@ -190,78 +265,87 @@
     {% endif %}
   </div>
 
-  <!-- Game detail (hidden until selected) -->
+  <!-- Game detail -->
   <div id="detail">
     <div class="detail-header">
-      <div>
+      <button class="btn-back" onclick="showSearch()">← Back</button>
+      <div class="detail-title-wrap">
         <h2 id="detail-title">—</h2>
         <div class="detail-console" id="detail-console">—</div>
       </div>
-      <button class="btn-back" onclick="showSearch()">← Back</button>
     </div>
 
-    <!-- Condition (from scan, if used) -->
-    <div id="condition-row" class="hidden">
-      <div style="padding: 12px 16px 0;">
-        <span class="condition-badge" id="condition-badge"></span>
-        <span style="font-size:0.75rem; color:var(--muted); margin-left:6px;" id="condition-grade"></span>
-      </div>
+    <!-- Scan condition -->
+    <div id="condition-row" class="hidden condition-row">
+      <span class="condition-badge" id="condition-badge"></span>
+      <span class="condition-grade" id="condition-grade"></span>
       <div class="condition-notes" id="condition-notes"></div>
-      <div class="resale-notes" id="resale-notes-box"><strong>Resale note:</strong> <span id="resale-notes"></span></div>
+      <div class="resale-notes hidden" id="resale-notes-box"><strong>Resale note:</strong> <span id="resale-notes"></span></div>
     </div>
 
-    <!-- Price grid -->
+    <!-- Price cards -->
     <div class="prices-grid" id="prices-grid">
       <div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>
     </div>
 
-    <!-- DK Oldies retail + buy prices -->
-    <div class="dko-row" id="dko-row" style="display:none">
-      <div>
-        <div class="dko-label">DK Oldies sells for</div>
-        <div class="dko-price" id="dko-price">—</div>
+    <!-- DK Oldies -->
+    <div class="dko-section" id="dko-section" style="display:none">
+      <div class="dko-card" id="dko-row" style="display:none">
+        <div>
+          <div class="dko-label">DK Oldies sells for</div>
+          <div class="dko-price" id="dko-price">—</div>
+        </div>
+        <a class="dko-link" id="dko-link" href="#" target="_blank">View ↗</a>
       </div>
-      <a class="dko-link" id="dko-link" href="#" target="_blank">View ↗</a>
-    </div>
-    <div class="dko-row" id="dko-buy-row" style="display:none; border-color:#00e5a044; background:#0a1f18;">
-      <div>
-        <div class="dko-label">DK Oldies buys for</div>
-        <div class="dko-price" id="dko-buy-price" style="color:#00e5a0;">—</div>
+      <div class="dko-card buy" id="dko-buy-row" style="display:none">
+        <div>
+          <div class="dko-label">DK Oldies buys for</div>
+          <div class="dko-price" id="dko-buy-price">—</div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);text-align:right;">from their<br>sell page</div>
       </div>
-      <div style="font-size:0.7rem;color:var(--muted);text-align:right;">from<br>sell page</div>
     </div>
 
     <!-- Deal calculator -->
     <div class="calc-section">
-      <label>What are they asking?</label>
-      <div class="pawn-input-row">
+      <div class="calc-label">What are they asking?</div>
+      <div class="pawn-row">
         <span class="pawn-prefix">$</span>
         <input type="number" id="pawn-price" class="pawn-input" placeholder="0.00" min="0" step="0.50" inputmode="decimal">
       </div>
       <div id="deal-result"></div>
     </div>
 
-    <!-- PriceCharting link -->
-    <div style="padding: 0 16px 24px; text-align:center;">
-      <a id="pc-link" href="#" target="_blank" style="font-size:0.75rem; color:var(--muted); text-decoration:none;">View full price history on PriceCharting ↗</a>
+    <div class="pc-link-row">
+      <a id="pc-link" href="#" target="_blank">View full price history on PriceCharting ↗</a>
     </div>
   </div>
-</div>
+
+</div><!-- /main -->
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let currentPrices = {};
-let scanContext   = null;
+let currentPrices  = {};
+let currentConsole = "";
+let scanContext    = null;
 let scanPhotoCount = 0;
 const MAX_SCAN_PHOTOS = 3;
 
+// ── Console chip selection ─────────────────────────────────────────────────
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    currentConsole = chip.dataset.console;
+  });
+});
+
 // ── Search ─────────────────────────────────────────────────────────────────
 document.getElementById("btn-search").addEventListener("click", doSearch);
-document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doSearch(); } });
 
 async function doSearch() {
   const q = document.getElementById("q").value.trim();
-  const console_key = document.getElementById("console-select").value;
   if (!q) return;
   hideScanPanel();
   showSearch();
@@ -270,39 +354,37 @@ async function doSearch() {
   resultsDiv.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching…</div>';
 
   const params = new URLSearchParams({ q });
-  if (console_key) params.append("console", console_key);
+  if (currentConsole) params.append("console", currentConsole);
 
   try {
-    const res = await fetch("/search?" + params);
-    const data = await res.json();
-    renderResults(data, console_key);
-  } catch (e) {
+    const data = await fetch("/search?" + params).then(r => r.json());
+    renderResults(data);
+  } catch {
     resultsDiv.innerHTML = '<div class="loading-row" style="color:var(--danger)">Search failed — check connection</div>';
   }
 }
 
-function renderResults(results, console_key) {
-  const resultsDiv = document.getElementById("results");
+function renderResults(results) {
+  const div = document.getElementById("results");
   if (!results.length) {
-    resultsDiv.innerHTML = '<div class="loading-row">No results found. Try a different spelling.</div>';
+    div.innerHTML = '<div class="loading-row">No results found. Try a different spelling.</div>';
     return;
   }
-  resultsDiv.innerHTML = results.map(r => {
-    const loose = r.loose_cents || 0;
-    const cib   = r.cib_cents   || 0;
-    const highPrice = Math.max(loose, cib);
-    const useCib    = cib > 0 && cib >= loose;
-    const isGold    = cib > loose && loose > 0;
-    const priceLabel = useCib ? "CIB" : "loose";
-    return `
-    <div class="result-item" onclick="loadGame('${esc(r.pc_console)}','${esc(r.slug)}','${esc(r.name)}','${esc(console_key)}')">
-      <div>
+  div.innerHTML = results.map(r => {
+    const loose = r.loose_cents  || 0;
+    const dkBuy = r.dk_buy_cents || 0;
+    const isGold = dkBuy > 0 && loose > 0 && dkBuy > loose;
+    const priceHtml = dkBuy
+      ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(dkBuy)}</div><div class="price-label">DK pays</div>`
+      : loose
+        ? `<div class="top-price">$${cents(loose)}</div><div class="price-label">loose</div>`
+        : "";
+    return `<div class="result-item" onclick="loadGame('${esc(r.pc_console)}','${esc(r.slug)}','${esc(r.name)}','${esc(currentConsole)}')">
+      <div class="result-left">
         <div class="result-name">${esc(r.name)}</div>
         <div class="result-console">${esc(r.console_name)}</div>
       </div>
-      <div class="result-price">
-        ${highPrice ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(highPrice)}</div><div class="price-label">${priceLabel}</div>` : ""}
-      </div>
+      <div class="result-price">${priceHtml}</div>
     </div>`;
   }).join("");
 }
@@ -310,88 +392,77 @@ function renderResults(results, console_key) {
 // ── Game detail ────────────────────────────────────────────────────────────
 async function loadGame(pc_console, slug, name, console_key, scanResult) {
   showDetail();
-  document.getElementById("detail-title").textContent   = name || slug.replace(/-/g," ");
-  document.getElementById("detail-console").textContent = pc_console.replace(/-/g," ");
+  document.getElementById("detail-title").textContent  = name || slug.replace(/-/g, " ");
+  document.getElementById("detail-console").textContent = pc_console.replace(/-/g, " ");
   document.getElementById("prices-grid").innerHTML      = '<div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>';
+  document.getElementById("dko-section").style.display  = "none";
   document.getElementById("dko-row").style.display      = "none";
   document.getElementById("dko-buy-row").style.display  = "none";
   document.getElementById("deal-result").innerHTML      = "";
   document.getElementById("pawn-price").value           = "";
   document.getElementById("condition-row").classList.add("hidden");
 
-  // Show condition from scan if provided
-  if (scanResult && scanResult.identified) {
-    showCondition(scanResult);
-  }
+  if (scanResult && scanResult.identified) showCondition(scanResult);
 
-  const params = new URLSearchParams({ pc_console, slug, name, console_key });
   try {
-    const res  = await fetch("/prices?" + params);
-    const data = await res.json();
-    renderPrices(data, pc_console, slug);
-  } catch (e) {
+    const params = new URLSearchParams({ pc_console, slug, name, console_key });
+    const data   = await fetch("/prices?" + params).then(r => r.json());
+    renderPrices(data, pc_console);
+  } catch {
     document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="color:var(--danger)">Failed to load prices</div>';
   }
 }
 
-function showCondition(scanResult) {
-  const condMap = {
-    loose: "Loose (Cart Only)", cib: "Complete in Box", cib_incomplete: "Incomplete CIB",
-    new_sealed: "New/Sealed", damaged: "Damaged", unknown: "Condition Unknown"
-  };
-  document.getElementById("condition-badge").textContent  = condMap[scanResult.condition] || scanResult.condition;
-  document.getElementById("condition-grade").textContent  = scanResult.condition_grade ? `· ${scanResult.condition_grade}` : "";
-  document.getElementById("condition-notes").textContent  = scanResult.condition_notes || "";
-  document.getElementById("resale-notes").textContent     = scanResult.resale_notes || "";
+function showCondition(s) {
+  const condMap = { loose:"Loose (Cart Only)", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"Condition Unknown" };
+  document.getElementById("condition-badge").textContent = condMap[s.condition] || s.condition;
+  document.getElementById("condition-grade").textContent = s.condition_grade ? `· ${s.condition_grade}` : "";
+  document.getElementById("condition-notes").textContent = s.condition_notes || "";
+  document.getElementById("resale-notes").textContent    = s.resale_notes || "";
+  document.getElementById("resale-notes-box").classList.toggle("hidden", !s.resale_notes);
   document.getElementById("condition-row").classList.remove("hidden");
-  document.getElementById("resale-notes-box").style.display = scanResult.resale_notes ? "" : "none";
 }
 
-function renderPrices(data, pc_console, slug) {
+function renderPrices(data, pc_console) {
   const prices = data.prices || {};
   currentPrices = prices;
 
   document.getElementById("detail-title").textContent   = data.title || document.getElementById("detail-title").textContent;
-  document.getElementById("detail-console").textContent = pc_console.replace(/-/g," ");
+  document.getElementById("detail-console").textContent = pc_console.replace(/-/g, " ");
+  if (data.pc_url) document.getElementById("pc-link").href = data.pc_url;
 
-  if (data.pc_url) {
-    document.getElementById("pc-link").href = "https://www.pricecharting.com" + (data.pc_url.startsWith("/") ? "" : "/") + (data.pc_url.includes("pricecharting.com") ? new URL(data.pc_url).pathname : data.pc_url);
-    document.getElementById("pc-link").href = data.pc_url;
-  }
-
-  const cards = [
-    ["loose",   "Loose",    true ],
-    ["cib",     "CIB",      false],
-    ["new",     "New/Sealed", false],
-    ["graded",  "Graded",   false],
-  ].filter(([k]) => prices[k]);
+  const cards = [["loose","Loose",true],["cib","CIB",false],["new","New/Sealed",false],["graded","Graded",false]].filter(([k]) => prices[k]);
 
   if (!cards.length) {
     document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="grid-column:1/-1">No price data found</div>';
-    return;
+  } else {
+    document.getElementById("prices-grid").innerHTML = cards.map(([k, label, hi]) =>
+      `<div class="price-card${hi ? " hi" : ""}">
+        <div class="p-label">${label}</div>
+        <div class="p-val">$${cents(prices[k])}</div>
+        <div class="p-note">market avg</div>
+      </div>`
+    ).join("");
   }
 
-  document.getElementById("prices-grid").innerHTML = cards.map(([k, label, hi]) => `
-    <div class="price-card ${hi ? "highlight" : ""}">
-      <div class="price-label">${label}</div>
-      <div class="price-value ${hi ? "accent" : ""}">$${cents(prices[k])}</div>
-      <div class="price-note">market avg</div>
-    </div>
-  `).join("");
-
-  // DK Oldies retail (what they sell for)
+  // DK Oldies
+  let showSection = false;
   if (data.dk_price) {
     document.getElementById("dko-price").textContent = "$" + cents(data.dk_price);
-    document.getElementById("dko-row").style.display  = "";
+    document.getElementById("dko-row").style.display = "";
     if (data.dk_url) document.getElementById("dko-link").href = data.dk_url.startsWith("http") ? data.dk_url : "https://www.dkoldies.com" + data.dk_url;
+    showSection = true;
   }
-  // DK Oldies buy price (what they pay YOU for it)
   if (data.dk_buy_price) {
-    document.getElementById("dko-buy-price").textContent = "$" + cents(data.dk_buy_price);
+    document.getElementById("dko-buy-price").textContent  = "$" + cents(data.dk_buy_price);
     document.getElementById("dko-buy-row").style.display  = "";
+    showSection = true;
   }
+  if (showSection) document.getElementById("dko-section").style.display = "";
 
-  // Re-run deal calc if user already entered a price
+  // Auto-focus pawn input
+  setTimeout(() => document.getElementById("pawn-price").focus(), 350);
+
   const pawnVal = document.getElementById("pawn-price").value;
   if (pawnVal) updateDeal(parseFloat(pawnVal));
 }
@@ -406,93 +477,73 @@ document.getElementById("pawn-price").addEventListener("input", e => {
 async function updateDeal(dollars) {
   const pawnCents = Math.round(dollars * 100);
   const params = new URLSearchParams({ pawn: pawnCents });
-  if (currentPrices.loose)  params.append("loose", currentPrices.loose);
-  if (currentPrices.cib)    params.append("cib",   currentPrices.cib);
-  if (currentPrices.new)    params.append("new",   currentPrices.new);
+  if (currentPrices.loose) params.append("loose", currentPrices.loose);
+  if (currentPrices.cib)   params.append("cib",   currentPrices.cib);
+  if (currentPrices.new)   params.append("new",   currentPrices.new);
 
-  const res  = await fetch("/deal?" + params);
-  const data = await res.json();
-
-  const condOrder = [
-    ["loose", "If selling loose"],
-    ["cib",   "If selling CIB"],
-    ["new",   "If selling new/sealed"],
-  ];
-
-  document.getElementById("deal-result").innerHTML = condOrder
-    .filter(([k]) => data[k])
-    .map(([k, sublabel]) => {
-      const d = data[k];
-      return `
-        <div class="deal-card ${d.tag}">
+  try {
+    const data = await fetch("/deal?" + params).then(r => r.json());
+    const condOrder = [["loose","Selling loose"],["cib","Selling CIB"],["new","Selling new/sealed"]];
+    document.getElementById("deal-result").innerHTML = condOrder
+      .filter(([k]) => data[k])
+      .map(([k, sublabel]) => {
+        const d = data[k];
+        return `<div class="deal-card ${d.tag}">
           <div class="deal-top">
             <div>
-              <div class="deal-emoji-label">${d.emoji} ${d.label}</div>
-              <div class="deal-condition">${sublabel}</div>
+              <div class="deal-verdict">${d.emoji} ${d.label}</div>
+              <div class="deal-cond">${sublabel}</div>
             </div>
-            <div class="deal-profit">
-              <div class="deal-profit-val" style="color:${d.profit > 0 ? 'var(--steal)' : 'var(--danger)'}">
+            <div>
+              <div class="deal-profit-val" style="color:${d.profit >= 0 ? "var(--steal)" : "var(--danger)"}">
                 ${d.profit >= 0 ? "+" : ""}$${cents(d.profit)}
               </div>
               <div class="deal-margin">${d.margin_pct}% margin</div>
             </div>
           </div>
         </div>`;
-    }).join("") || '<div class="loading-row">Enter a price above</div>';
+      }).join("") || "";
+  } catch { /* ignore */ }
 }
 
 // ── Camera Scan ────────────────────────────────────────────────────────────
 document.getElementById("btn-open-scan").addEventListener("click", () => {
-  const panel = document.getElementById("scan-panel");
-  panel.style.display = panel.style.display === "none" || !panel.style.display ? "block" : "none";
-  scanContext = null;
-  scanPhotoCount = 0;
+  const p = document.getElementById("scan-panel");
+  const showing = p.style.display === "block";
+  p.style.display = showing ? "none" : "block";
+  if (!showing) { scanContext = null; scanPhotoCount = 0; }
 });
+document.getElementById("btn-take-photo").addEventListener("click",    () => document.getElementById("scan-file").click());
+document.getElementById("btn-another-photo").addEventListener("click", () => document.getElementById("scan-file").click());
 
-document.getElementById("btn-take-photo").addEventListener("click", () => {
-  document.getElementById("scan-file").click();
-});
-
-document.getElementById("btn-another-photo").addEventListener("click", () => {
-  document.getElementById("scan-file").click();
-});
-
-document.getElementById("scan-file").addEventListener("change", async (e) => {
+document.getElementById("scan-file").addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
 
-  // Preview
-  const preview = document.getElementById("scan-preview");
-  preview.src = URL.createObjectURL(file);
+  const preview  = document.getElementById("scan-preview");
+  preview.src    = URL.createObjectURL(file);
   preview.style.display = "block";
 
-  const status    = document.getElementById("scan-status");
-  const photoReq  = document.getElementById("photo-request-box");
-  const btnAnother = document.getElementById("btn-another-photo");
+  const status   = document.getElementById("scan-status");
+  const photoReq = document.getElementById("photo-request-box");
+  const btn2     = document.getElementById("btn-another-photo");
 
   status.className = "scan-status active";
   status.innerHTML = '<span class="spinner"></span>Analyzing with Claude…';
   photoReq.style.display = "none";
-  btnAnother.style.display = "none";
+  btn2.style.display = "none";
 
-  const formData = new FormData();
-  formData.append("image", file);
-
+  const fd = new FormData();
+  fd.append("image", file);
   let endpoint = "/scan";
   if (scanContext && scanPhotoCount > 0) {
     endpoint = "/scan/followup";
-    formData.append("context", JSON.stringify(scanContext));
+    fd.append("context", JSON.stringify(scanContext));
   }
 
   try {
-    const res  = await fetch(endpoint, { method: "POST", body: formData });
-    const data = await res.json();
-
-    if (data.error) {
-      status.className = "scan-status";
-      status.textContent = "Error: " + data.error;
-      return;
-    }
+    const data = await fetch(endpoint, { method: "POST", body: fd }).then(r => r.json());
+    if (data.error) { status.className = "scan-status"; status.textContent = "Error: " + data.error; return; }
 
     scanContext = data;
     scanPhotoCount++;
@@ -500,53 +551,45 @@ document.getElementById("scan-file").addEventListener("change", async (e) => {
     if (!data.identified) {
       status.className = "scan-status";
       status.textContent = "Couldn't identify the game. Try a clearer photo.";
-      btnAnother.style.display = "block";
+      btn2.style.display = "block";
       return;
     }
-
     if (data.needs_more_photos && scanPhotoCount < MAX_SCAN_PHOTOS) {
       status.className = "scan-status";
       status.textContent = `Identified: ${data.game_name} (${data.console_display || ""})`;
       photoReq.textContent = "📸 " + data.photo_request;
       photoReq.style.display = "block";
-      btnAnother.style.display = "block";
-      btnAnother.textContent  = "📸 Take Another Photo";
+      btn2.style.display = "block";
+      btn2.textContent = "📸 Take Another Photo";
       return;
     }
 
-    // Got enough info — load the game
-    status.className  = "scan-status";
+    status.className = "scan-status";
     status.textContent = `Found: ${data.game_name} · ${data.condition_grade || ""} ${conditionLabel(data.condition)}`;
     photoReq.style.display = "none";
-    btnAnother.style.display = "none";
+    btn2.style.display = "none";
 
-    // Pre-fill search
     document.getElementById("q").value = data.game_name;
-    if (data.console_key) document.getElementById("console-select").value = data.console_key;
+    if (data.console_key) {
+      currentConsole = data.console_key;
+      document.querySelectorAll(".chip").forEach(c => {
+        c.classList.toggle("active", c.dataset.console === data.console_key);
+      });
+    }
 
-    // Run the search and auto-pick the first matching result
     const params = new URLSearchParams({ q: data.game_name });
     if (data.console_key) params.append("console", data.console_key);
-
-    const searchRes = await fetch("/search?" + params);
-    const results   = await searchRes.json();
+    const results = await fetch("/search?" + params).then(r => r.json());
 
     if (results.length > 0) {
-      const top = results[0];
-      showDetail();
       hideScanPanel();
-      loadGame(top.pc_console, top.slug, top.name, data.console_key || "", data);
+      loadGame(results[0].pc_console, results[0].slug, results[0].name, data.console_key || "", data);
     } else {
-      hideScanPanel();
-      renderResults(results, data.console_key || "");
-      showSearch();
+      hideScanPanel(); showSearch(); renderResults(results);
     }
   } catch (err) {
-    status.className  = "scan-status";
-    status.textContent = "Scan failed: " + err.message;
+    status.className = "scan-status"; status.textContent = "Scan failed: " + err.message;
   }
-
-  // Reset file input so same file can be re-picked
   e.target.value = "";
 });
 
@@ -554,14 +597,13 @@ document.getElementById("scan-file").addEventListener("change", async (e) => {
 function showDetail() {
   document.getElementById("results").style.display = "none";
   document.getElementById("detail").style.display  = "block";
+  window.scrollTo(0, 0);
 }
 function showSearch() {
   document.getElementById("results").style.display = "block";
   document.getElementById("detail").style.display  = "none";
 }
-function hideScanPanel() {
-  document.getElementById("scan-panel").style.display = "none";
-}
+function hideScanPanel() { document.getElementById("scan-panel").style.display = "none"; }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function cents(c) {
@@ -569,20 +611,14 @@ function cents(c) {
   const abs = Math.abs(c);
   return (c < 0 ? "-" : "") + (abs / 100).toFixed(2);
 }
-function esc(s) {
-  return (s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
-}
+function esc(s) { return (s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
 function conditionLabel(c) {
-  const m = { loose:"Loose", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"" };
-  return m[c] || c || "";
+  return { loose:"Loose", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"" }[c] || c || "";
 }
 
-// ── Service Worker registration ────────────────────────────────────────────
+// ── Service Worker ─────────────────────────────────────────────────────────
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js")
-      .catch(err => console.warn("SW registration failed:", err));
-  });
+  window.addEventListener("load", () => navigator.serviceWorker.register("/static/sw.js").catch(() => {}));
 }
 </script>
 </body>

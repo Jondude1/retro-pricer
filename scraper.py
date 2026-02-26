@@ -92,13 +92,16 @@ def search_pricecharting(query, console_key=None):
         loose = _parse_price(price_els[0].text) if len(price_els) > 0 else None
         cib   = _parse_price(price_els[1].text) if len(price_els) > 1 else None
 
+        game_name = link_el.text.strip()
+        dk_buy    = get_dkoldies_buy_price(game_name)
         results.append({
-            "name":         link_el.text.strip(),
-            "console_name": console_name,
-            "pc_console":   pc_console,
-            "slug":         game_slug,
-            "loose_cents":  loose,
-            "cib_cents":    cib,
+            "name":          game_name,
+            "console_name":  console_name,
+            "pc_console":    pc_console,
+            "slug":          game_slug,
+            "loose_cents":   loose,
+            "cib_cents":     cib,
+            "dk_buy_cents":  dk_buy["buy_cents"] if dk_buy else None,
         })
 
     return results[:15]
