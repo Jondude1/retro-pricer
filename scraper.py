@@ -1,7 +1,7 @@
 """
 Scrapers for PriceCharting (market prices) and DK Oldies (retail + buy prices).
 """
-import re, json, time, unicodedata
+import os, re, json, time, unicodedata
 import requests
 from bs4 import BeautifulSoup
 import certifi
@@ -202,29 +202,43 @@ _dko_buylist_cache = {"data": {}, "fetched_at": 0}
 _DKO_BUYLIST_TTL   = 3600  # 1 hour
 
 
-def _fetch_dkoldies_buylist():
-    """Scrape the full DK Oldies sell-your-games page and return {name_key: cents}."""
+_DKO_BUYLIST_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "dko_buylist.json")
+
+
+def _load_buylist_from_json():
+    """Load the bundled DKO buylist JSON (scraped locally, committed to repo)."""
     try:
-        resp = session.get("https://www.dkoldies.com/sell-video-games/", timeout=20)
-        resp.raise_for_status()
+        with open(_DKO_BUYLIST_JSON, encoding="utf-8") as f:
+            items = json.load(f)
+        return {_normalise(item["name"]): {"name": item["name"], "cents": item["cents"]} for item in items}
     except Exception as e:
-        print(f"[scraper] dko buylist fetch failed: {e}", flush=True)
+        print(f"[scraper] dko buylist json load failed: {e}", flush=True)
         return {}
 
-    soup = BeautifulSoup(resp.text, "html.parser")
-    buylist = {}
-    for row in soup.select(".pd_row"):
-        label_el = row.select_one(".pd_label") or row.select_one("label")
-        price_el = row.select_one(".pd_price")
-        if not label_el or not price_el:
-            continue
-        name  = label_el.get_text(" ", strip=True)
-        # Strip price-change arrows (▲ ▼) and parse
-        price_text = re.sub(r"[▲▼]", "", price_el.get_text(strip=True))
-        cents = _parse_price(price_text)
-        if cents and cents > 0:
-            buylist[_normalise(name)] = {"name": name, "cents": cents}
-    return buylist
+
+def _fetch_dkoldies_buylist():
+    """Try to scrape fresh DKO buy prices; fall back to bundled JSON if blocked."""
+    try:
+        resp = session.get("https://www.dkoldies.com/sell-video-games/", timeout=20)
+        if not resp.ok or "just a moment" in resp.text.lower():
+            raise ValueError(f"Blocked or bad status: {resp.status_code}")
+        soup = BeautifulSoup(resp.text, "html.parser")
+        buylist = {}
+        for row in soup.select(".pd_row"):
+            label_el = row.select_one(".pd_label") or row.select_one("label")
+            price_el = row.select_one(".pd_price")
+            if not label_el or not price_el:
+                continue
+            name  = label_el.get_text(" ", strip=True)
+            price_text = re.sub(r"[▲▼]", "", price_el.get_text(strip=True))
+            cents = _parse_price(price_text)
+            if cents and cents > 0:
+                buylist[_normalise(name)] = {"name": name, "cents": cents}
+        if buylist:
+            return buylist
+    except Exception as e:
+        print(f"[scraper] live dko buylist fetch failed ({e}), using bundled JSON", flush=True)
+    return _load_buylist_from_json()
 
 
 def _normalise(text):
