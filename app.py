@@ -303,12 +303,25 @@ Based on this additional photo, provide a final assessment. Respond ONLY with va
 @app.route("/debug/buylist")
 def debug_buylist():
     """Diagnostic: test DKO buylist fetch."""
-    import traceback
+    import traceback, certifi
     try:
-        data = scraper._fetch_dkoldies_buylist()
-        sample = dict(list(data.items())[:5])
-        test  = scraper.get_dkoldies_buy_price("Super Mario Bros")
-        return jsonify({"count": len(data), "sample": sample, "mario_result": test})
+        resp = requests.get(
+            "https://www.dkoldies.com/sell-video-games/",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            verify=certifi.where(), timeout=20,
+        )
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(resp.text, "html.parser")
+        rows = soup.select(".pd_row")
+        title = soup.find("title")
+        sample_row = str(rows[0])[:300] if rows else "no rows"
+        return jsonify({
+            "status": resp.status_code,
+            "page_size": len(resp.text),
+            "title": title.text if title else None,
+            "pd_row_count": len(rows),
+            "sample_row": sample_row,
+        })
     except Exception as e:
         return jsonify({"error": str(e), "trace": traceback.format_exc()})
 
