@@ -22,6 +22,7 @@
     --text:     #f0f0f0;
     --muted:    #888;
     --steal:    #00e5a0;
+    --gold:     #FFD700;
     --good:     #4caf50;
     --fair:     #ffaa00;
     --pass:     #ff4d4d;
@@ -61,8 +62,9 @@
   .result-name { font-size: 0.95rem; font-weight: 600; }
   .result-console { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
   .result-price { text-align: right; }
-  .result-price .loose { font-size: 0.85rem; color: var(--accent); font-weight: 700; }
-  .result-price .cib { font-size: 0.75rem; color: var(--muted); }
+  .result-price .top-price { font-size: 0.95rem; font-weight: 800; color: var(--accent); }
+  .result-price .top-price.gold { color: var(--gold); }
+  .result-price .price-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-top: 1px; }
 
   /* Game detail panel */
   #detail { display: none; }
@@ -285,18 +287,24 @@ function renderResults(results, console_key) {
     resultsDiv.innerHTML = '<div class="loading-row">No results found. Try a different spelling.</div>';
     return;
   }
-  resultsDiv.innerHTML = results.map(r => `
+  resultsDiv.innerHTML = results.map(r => {
+    const loose = r.loose_cents || 0;
+    const cib   = r.cib_cents   || 0;
+    const highPrice = Math.max(loose, cib);
+    const useCib    = cib > 0 && cib >= loose;
+    const isGold    = cib > loose && loose > 0;
+    const priceLabel = useCib ? "CIB" : "loose";
+    return `
     <div class="result-item" onclick="loadGame('${esc(r.pc_console)}','${esc(r.slug)}','${esc(r.name)}','${esc(console_key)}')">
       <div>
         <div class="result-name">${esc(r.name)}</div>
         <div class="result-console">${esc(r.console_name)}</div>
       </div>
       <div class="result-price">
-        ${r.loose_cents ? `<div class="loose">$${cents(r.loose_cents)}</div>` : ""}
-        ${r.cib_cents   ? `<div class="cib">CIB $${cents(r.cib_cents)}</div>` : ""}
+        ${highPrice ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(highPrice)}</div><div class="price-label">${priceLabel}</div>` : ""}
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 }
 
 // ── Game detail ────────────────────────────────────────────────────────────
