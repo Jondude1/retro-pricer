@@ -300,6 +300,19 @@ Based on this additional photo, provide a final assessment. Respond ONLY with va
     return jsonify(result)
 
 
+@app.route("/debug/buylist")
+def debug_buylist():
+    """Diagnostic: test DKO buylist fetch."""
+    import traceback
+    try:
+        data = scraper._fetch_dkoldies_buylist()
+        sample = dict(list(data.items())[:5])
+        test  = scraper.get_dkoldies_buy_price("Super Mario Bros")
+        return jsonify({"count": len(data), "sample": sample, "mario_result": test})
+    except Exception as e:
+        return jsonify({"error": str(e), "trace": traceback.format_exc()})
+
+
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
