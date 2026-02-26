@@ -213,13 +213,20 @@
       <div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>
     </div>
 
-    <!-- DK Oldies -->
+    <!-- DK Oldies retail + buy prices -->
     <div class="dko-row" id="dko-row" style="display:none">
       <div>
-        <div class="dko-label">DK Oldies (retail)</div>
+        <div class="dko-label">DK Oldies sells for</div>
         <div class="dko-price" id="dko-price">—</div>
       </div>
       <a class="dko-link" id="dko-link" href="#" target="_blank">View ↗</a>
+    </div>
+    <div class="dko-row" id="dko-buy-row" style="display:none; border-color:#00e5a044; background:#0a1f18;">
+      <div>
+        <div class="dko-label">DK Oldies buys for</div>
+        <div class="dko-price" id="dko-buy-price" style="color:#00e5a0;">—</div>
+      </div>
+      <div style="font-size:0.7rem;color:var(--muted);text-align:right;">from<br>sell page</div>
     </div>
 
     <!-- Deal calculator -->
@@ -299,6 +306,7 @@ async function loadGame(pc_console, slug, name, console_key, scanResult) {
   document.getElementById("detail-console").textContent = pc_console.replace(/-/g," ");
   document.getElementById("prices-grid").innerHTML      = '<div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>';
   document.getElementById("dko-row").style.display      = "none";
+  document.getElementById("dko-buy-row").style.display  = "none";
   document.getElementById("deal-result").innerHTML      = "";
   document.getElementById("pawn-price").value           = "";
   document.getElementById("condition-row").classList.add("hidden");
@@ -363,11 +371,16 @@ function renderPrices(data, pc_console, slug) {
     </div>
   `).join("");
 
-  // DK Oldies
+  // DK Oldies retail (what they sell for)
   if (data.dk_price) {
     document.getElementById("dko-price").textContent = "$" + cents(data.dk_price);
     document.getElementById("dko-row").style.display  = "";
     if (data.dk_url) document.getElementById("dko-link").href = data.dk_url.startsWith("http") ? data.dk_url : "https://www.dkoldies.com" + data.dk_url;
+  }
+  // DK Oldies buy price (what they pay YOU for it)
+  if (data.dk_buy_price) {
+    document.getElementById("dko-buy-price").textContent = "$" + cents(data.dk_buy_price);
+    document.getElementById("dko-buy-row").style.display  = "";
   }
 
   // Re-run deal calc if user already entered a price

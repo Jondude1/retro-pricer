@@ -1,7 +1,7 @@
 """
-Scrapers for PriceCharting (market prices) and DK Oldies (retail prices).
+Scrapers for PriceCharting (market prices) and DK Oldies (retail + buy prices).
 """
-import re, json, time
+import re, json, time, unicodedata
 import requests
 from bs4 import BeautifulSoup
 import certifi
@@ -193,6 +193,82 @@ def get_dkoldies_price(game_name, console_name=""):
         }
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# DK Oldies buy-list (what they pay sellers)
+# ---------------------------------------------------------------------------
+_dko_buylist_cache = {"data": {}, "fetched_at": 0}
+_DKO_BUYLIST_TTL   = 3600  # 1 hour
+
+
+def _fetch_dkoldies_buylist():
+    """Scrape the full DK Oldies sell-your-games page and return {name_key: cents}."""
+    try:
+        resp = session.get("https://www.dkoldies.com/sell-video-games/", timeout=20)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"[scraper] dko buylist fetch failed: {e}", flush=True)
+        return {}
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    buylist = {}
+    for row in soup.select(".pd_row"):
+        label_el = row.select_one(".pd_label") or row.select_one("label")
+        price_el = row.select_one(".pd_price")
+        if not label_el or not price_el:
+            continue
+        name  = label_el.get_text(" ", strip=True)
+        # Strip price-change arrows (▲ ▼) and parse
+        price_text = re.sub(r"[▲▼]", "", price_el.get_text(strip=True))
+        cents = _parse_price(price_text)
+        if cents and cents > 0:
+            buylist[_normalise(name)] = {"name": name, "cents": cents}
+    return buylist
+
+
+def _normalise(text):
+    """Lowercase, strip punctuation/articles for fuzzy matching."""
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    text = re.sub(r"[^a-z0-9 ]", " ", text.lower())
+    # Remove common filler words
+    text = re.sub(r"\b(the|a|an|for|in|of|and|with|w|wii|nes|n64|snes|gba|gbc|nds|psp|ps1|ps2|ps3|xbox|gamecube|genesis|saturn|dreamcast)\b", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def get_dkoldies_buy_price(game_name):
+    """Return what DK Oldies will pay for a game (from their sell page), or None."""
+    global _dko_buylist_cache
+    now = time.time()
+    if now - _dko_buylist_cache["fetched_at"] > _DKO_BUYLIST_TTL or not _dko_buylist_cache["data"]:
+        _dko_buylist_cache["data"]       = _fetch_dkoldies_buylist()
+        _dko_buylist_cache["fetched_at"] = now
+
+    buylist = _dko_buylist_cache["data"]
+    if not buylist:
+        return None
+
+    needle = _normalise(game_name)
+    needle_words = set(needle.split())
+    if not needle_words:
+        return None
+
+    best_key, best_score = None, 0
+    for key in buylist:
+        key_words = set(key.split())
+        if not key_words:
+            continue
+        overlap = len(needle_words & key_words)
+        # Score = fraction of needle words matched, boosted when key is also short
+        score = overlap / max(len(needle_words), len(key_words))
+        if score > best_score:
+            best_score, best_key = score, key
+
+    # Require at least 50% word overlap to count as a match
+    if best_score >= 0.5 and best_key:
+        entry = buylist[best_key]
+        return {"name": entry["name"], "buy_cents": entry["cents"]}
+    return None
 
 
 def deal_rating(pawn_cents, market_cents):
