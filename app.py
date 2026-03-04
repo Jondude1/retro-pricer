@@ -300,6 +300,20 @@ Based on this additional photo, provide a final assessment. Respond ONLY with va
     return jsonify(result)
 
 
+@app.route("/api/local-deals")
+def api_local_deals():
+    """Return eBay local-pickup listings near the given coordinates."""
+    lat    = request.args.get("lat",    type=float)
+    lon    = request.args.get("lon",    type=float)
+    radius = request.args.get("radius", 25, type=int)
+    query  = request.args.get("q",      "retro video games").strip()
+
+    if lat is None or lon is None:
+        return jsonify({"error": "lat and lon query params required"}), 400
+
+    return jsonify(scraper.search_ebay_local(lat, lon, radius, query))
+
+
 @app.route("/debug/buylist")
 def debug_buylist():
     """Diagnostic: test DKO buylist fetch."""

@@ -204,6 +204,35 @@
   .history-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
   .history-price { font-size: 0.9rem; color: var(--accent); font-weight: 800; }
 
+  /* ── Local Deals Panel ── */
+  .btn-local-header {
+    background: #0d2a1e; color: var(--accent); border: 1.5px solid var(--accent);
+    border-radius: 10px; padding: 9px 12px; font-size: 1.05rem;
+    cursor: pointer; line-height: 1; flex-shrink: 0;
+  }
+  .btn-local-header:active { opacity: 0.75; }
+  #local-panel { display: none; padding: 14px; background: #111; border-bottom: 1px solid var(--border); }
+  #local-panel h3 { font-size: 0.8rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .local-loc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .btn-detect { background: var(--card); border: 1.5px solid var(--accent); color: var(--accent); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-detect:active { opacity: 0.75; }
+  .loc-status { font-size: 0.8rem; color: var(--muted); flex: 1; min-width: 0; }
+  .local-filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .local-q { flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 0.9rem; outline: none; min-width: 0; }
+  .local-q:focus { border-color: var(--accent); }
+  .local-radius { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 8px; color: var(--text); font-size: 0.85rem; outline: none; }
+  .btn-local-go { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 11px 16px; font-size: 0.9rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .btn-local-go:active { opacity: 0.75; }
+  .ebay-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; gap: 10px; text-decoration: none; color: var(--text); transition: border-color 0.15s; }
+  .ebay-card:active { border-color: var(--accent); }
+  .ebay-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; background: #222; flex-shrink: 0; }
+  .ebay-info { flex: 1; min-width: 0; }
+  .ebay-title { font-size: 0.87rem; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .ebay-meta { font-size: 0.72rem; color: var(--muted); }
+  .ebay-price-col { text-align: right; flex-shrink: 0; }
+  .ebay-price { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+  .ebay-badge { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
   /* ── Utility ── */
   .spinner { display: inline-block; width: 17px; height: 17px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -216,6 +245,7 @@
 <header>
   <div style="font-size:1.3rem">🕹️</div>
   <h1>Retro Price Check</h1>
+  <button class="btn-local-header" id="btn-open-local" title="eBay Local Deals">📍</button>
   <button class="btn-scan-header" id="btn-open-scan" title="Scan with camera">📷</button>
 </header>
 
@@ -231,6 +261,25 @@
   {% for key, info in consoles.items() %}
   <div class="chip" data-console="{{ key }}">{{ info.name }}</div>
   {% endfor %}
+</div>
+
+<!-- Local Deals Panel -->
+<div id="local-panel">
+  <h3>📍 eBay Local Pickup Deals</h3>
+  <div class="local-loc-row">
+    <button class="btn-detect" id="btn-detect">📍 Detect Location</button>
+    <span class="loc-status" id="loc-status">No location set</span>
+  </div>
+  <div class="local-filter-row">
+    <input class="local-q" id="local-q" type="text" placeholder="e.g. N64 game lot" value="retro games">
+    <select class="local-radius" id="local-radius">
+      <option value="10">10 mi</option>
+      <option value="25" selected>25 mi</option>
+      <option value="50">50 mi</option>
+    </select>
+    <button class="btn-local-go" onclick="searchLocal()">Go</button>
+  </div>
+  <div id="local-results"></div>
 </div>
 
 <!-- Camera Scan Panel -->
@@ -614,6 +663,89 @@ function cents(c) {
 function esc(s) { return (s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
 function conditionLabel(c) {
   return { loose:"Loose", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"" }[c] || c || "";
+}
+
+// ── Local Deals ─────────────────────────────────────────────────────────────
+let localLat = null, localLon = null;
+
+document.getElementById("btn-open-local").addEventListener("click", () => {
+  const p = document.getElementById("local-panel");
+  const showing = p.style.display === "block";
+  p.style.display = showing ? "none" : "block";
+  if (!showing) hideScanPanel();
+});
+
+document.getElementById("btn-detect").addEventListener("click", detectLocation);
+
+function detectLocation() {
+  const status = document.getElementById("loc-status");
+  if (!navigator.geolocation) { status.textContent = "Geolocation not available"; return; }
+  status.textContent = "Detecting…";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      localLat = pos.coords.latitude;
+      localLon = pos.coords.longitude;
+      status.textContent = `${localLat.toFixed(3)}, ${localLon.toFixed(3)}`;
+      searchLocal();
+    },
+    () => { status.textContent = "Location denied — allow access and retry"; },
+    { enableHighAccuracy: false, timeout: 10000 }
+  );
+}
+
+async function searchLocal() {
+  if (!localLat || !localLon) {
+    document.getElementById("local-results").innerHTML =
+      '<div class="loading-row" style="color:var(--warn)">⚠️ Detect your location first</div>';
+    return;
+  }
+  const q      = document.getElementById("local-q").value.trim() || "retro games";
+  const radius = document.getElementById("local-radius").value;
+  const div    = document.getElementById("local-results");
+  div.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching eBay…</div>';
+  try {
+    const params = new URLSearchParams({ lat: localLat, lon: localLon, radius, q });
+    const data   = await fetch("/api/local-deals?" + params).then(r => r.json());
+    if (data.error) {
+      div.innerHTML = `<div class="loading-row" style="color:var(--danger)">⚠️ ${escHtml(data.error)}</div>`;
+      return;
+    }
+    renderLocalResults(data.listings || []);
+  } catch {
+    div.innerHTML = '<div class="loading-row" style="color:var(--danger)">Search failed — check connection</div>';
+  }
+}
+
+function renderLocalResults(listings) {
+  const div = document.getElementById("local-results");
+  if (!listings.length) {
+    div.innerHTML = '<div class="loading-row">No local listings found. Try a wider radius or different search.</div>';
+    return;
+  }
+  div.innerHTML = listings.map(item => {
+    const price = item.price_cents ? `$${cents(item.price_cents)}` : "—";
+    const dist  = item.distance != null ? `${parseFloat(item.distance).toFixed(1)} mi` : (item.location || "");
+    const meta  = [item.condition, dist].filter(Boolean).join(" · ");
+    const img   = item.image
+      ? `<img class="ebay-thumb" src="${escHtml(item.image)}" loading="lazy" alt="">`
+      : `<div class="ebay-thumb"></div>`;
+    return `<a class="ebay-card" href="${escHtml(item.url)}" target="_blank" rel="noopener">
+      ${img}
+      <div class="ebay-info">
+        <div class="ebay-title">${escHtml(item.title)}</div>
+        <div class="ebay-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="ebay-price-col">
+        <div class="ebay-price">${price}</div>
+        <div class="ebay-badge">Local pickup</div>
+      </div>
+    </a>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 // ── Service Worker ─────────────────────────────────────────────────────────

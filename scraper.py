@@ -1,7 +1,8 @@
 """
-Scrapers for PriceCharting (market prices) and DK Oldies (retail + buy prices).
+Scrapers for PriceCharting (market prices), DK Oldies (retail + buy prices),
+and eBay local pickup listings via the eBay Browse API.
 """
-import os, re, json, time, unicodedata
+import os, re, json, time, unicodedata, base64
 import requests
 from bs4 import BeautifulSoup
 import certifi
@@ -41,6 +42,93 @@ CONSOLES = {
     "xbox360":   {"name": "Xbox 360",        "pc": "xbox-360"},
     "atari2600": {"name": "Atari 2600",      "pc": "atari-2600"},
 }
+
+
+# ---------------------------------------------------------------------------
+# eBay Browse API — local pickup listings
+# ---------------------------------------------------------------------------
+_ebay_token_cache = {"token": None, "expires_at": 0}
+
+
+def _get_ebay_token():
+    """Obtain an eBay OAuth token via client credentials flow."""
+    app_id  = os.environ.get("EBAY_APP_ID", "")
+    cert_id = os.environ.get("EBAY_CERT_ID", "")
+    if not app_id or not cert_id:
+        return None
+    creds = base64.b64encode(f"{app_id}:{cert_id}".encode()).decode()
+    try:
+        resp = session.post(
+            "https://api.ebay.com/identity/v1/oauth2/token",
+            headers={
+                "Authorization": f"Basic {creds}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data={
+                "grant_type": "client_credentials",
+                "scope": "https://api.ebay.com/oauth/api_scope",
+            },
+            timeout=10,
+        )
+        if resp.ok:
+            return resp.json().get("access_token")
+    except Exception as e:
+        print(f"[scraper] eBay token error: {e}", flush=True)
+    return None
+
+
+def search_ebay_local(lat, lon, radius_miles=25, query="retro video games"):
+    """Search eBay for local-pickup listings near (lat, lon).
+
+    Returns a dict: {"listings": [...]} or {"error": "...", "listings": []}.
+    Each listing has: title, price_cents, condition, url, image, location, distance.
+    """
+    now = time.time()
+    if now >= _ebay_token_cache["expires_at"] or not _ebay_token_cache["token"]:
+        token = _get_ebay_token()
+        if token:
+            _ebay_token_cache["token"]      = token
+            _ebay_token_cache["expires_at"] = now + 7000  # tokens valid ~2 hrs
+    token = _ebay_token_cache.get("token")
+    if not token:
+        return {"error": "eBay API not configured — set EBAY_APP_ID and EBAY_CERT_ID env vars", "listings": []}
+
+    geo_filter = (
+        f"buyingOptions:{{FIXED_PRICE|AUCTION}},"
+        f"deliveryOptions:{{LOCAL_PICKUP}},"
+        f"geoCoordinates:{{{lat}|{lon}}},"
+        f"radius:{radius_miles}"
+    )
+    try:
+        resp = session.get(
+            "https://api.ebay.com/buy/browse/v1/item_summary/search",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            },
+            params={"q": query, "filter": geo_filter, "limit": 24, "sort": "price"},
+            timeout=12,
+        )
+    except Exception as e:
+        return {"error": str(e), "listings": []}
+
+    if not resp.ok:
+        return {"error": f"eBay API returned {resp.status_code}", "listings": []}
+
+    listings = []
+    for item in resp.json().get("itemSummaries", []):
+        price_val  = item.get("price", {}).get("value", 0)
+        price_cents = int(float(price_val) * 100)
+        listings.append({
+            "title":       item.get("title", ""),
+            "price_cents": price_cents,
+            "condition":   item.get("condition", ""),
+            "url":         item.get("itemWebUrl", ""),
+            "image":       item.get("image", {}).get("imageUrl", ""),
+            "location":    item.get("itemLocation", {}).get("city", ""),
+            "distance":    item.get("distanceMiles"),
+        })
+    return {"listings": listings}
 
 
 def search_pricecharting(query, console_key=None):
