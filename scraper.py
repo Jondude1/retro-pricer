@@ -45,89 +45,71 @@ CONSOLES = {
 
 
 # ---------------------------------------------------------------------------
-# eBay Browse API — local pickup listings
+# eBay search — public scrape, no API credentials needed
 # ---------------------------------------------------------------------------
-_ebay_token_cache = {"token": None, "expires_at": 0}
-
-
-def _get_ebay_token():
-    """Obtain an eBay OAuth token via client credentials flow."""
-    app_id  = os.environ.get("EBAY_APP_ID", "")
-    cert_id = os.environ.get("EBAY_CERT_ID", "")
-    if not app_id or not cert_id:
-        return None
-    creds = base64.b64encode(f"{app_id}:{cert_id}".encode()).decode()
-    try:
-        resp = session.post(
-            "https://api.ebay.com/identity/v1/oauth2/token",
-            headers={
-                "Authorization": f"Basic {creds}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            data={
-                "grant_type": "client_credentials",
-                "scope": "https://api.ebay.com/oauth/api_scope",
-            },
-            timeout=10,
-        )
-        if resp.ok:
-            return resp.json().get("access_token")
-    except Exception as e:
-        print(f"[scraper] eBay token error: {e}", flush=True)
-    return None
-
 
 def search_ebay_local(lat, lon, radius_miles=25, query="retro video games"):
-    """Search eBay for local-pickup listings near (lat, lon).
+    """Scrape eBay local-pickup listings near (lat, lon) without API credentials.
 
-    Returns a dict: {"listings": [...]} or {"error": "...", "listings": []}.
-    Each listing has: title, price_cents, condition, url, image, location, distance.
+    Uses eBay's public search URL with LPS (local pickup search) parameters.
+    Returns {"listings": [...]} or {"error": "...", "listings": []}.
+    Each listing: title, price_cents, condition, url, location, distance.
     """
-    now = time.time()
-    if now >= _ebay_token_cache["expires_at"] or not _ebay_token_cache["token"]:
-        token = _get_ebay_token()
-        if token:
-            _ebay_token_cache["token"]      = token
-            _ebay_token_cache["expires_at"] = now + 7000  # tokens valid ~2 hrs
-    token = _ebay_token_cache.get("token")
-    if not token:
-        return {"error": "eBay API not configured — set EBAY_APP_ID and EBAY_CERT_ID env vars", "listings": []}
-
-    geo_filter = (
-        f"buyingOptions:{{FIXED_PRICE|AUCTION}},"
-        f"deliveryOptions:{{LOCAL_PICKUP}},"
-        f"geoCoordinates:{{{lat}|{lon}}},"
-        f"radius:{radius_miles}"
-    )
+    # eBay encodes distance search via _sadis (zip not needed — lat/lon via _stpos trick)
+    # Simplest reliable approach: search with LPS filter, scrape results page.
+    params = {
+        "_nkw":    query,
+        "LH_PrefLoc": "99",        # local pickup only
+        "_sadis":  str(radius_miles),
+        "_stpos":  f"{lat},{lon}",  # lat,lon as postal code override
+        "LH_BIN":  "1",             # Buy It Now
+        "_sop":    "15",            # sort: lowest price + shipping
+        "_ipg":    "48",            # 48 results per page
+    }
     try:
         resp = session.get(
-            "https://api.ebay.com/buy/browse/v1/item_summary/search",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-            },
-            params={"q": query, "filter": geo_filter, "limit": 24, "sort": "price"},
-            timeout=12,
+            "https://www.ebay.com/sch/i.html",
+            params=params,
+            timeout=15,
         )
+        resp.raise_for_status()
     except Exception as e:
-        return {"error": str(e), "listings": []}
+        return {"error": f"eBay search failed: {e}", "listings": []}
 
-    if not resp.ok:
-        return {"error": f"eBay API returned {resp.status_code}", "listings": []}
+    soup = BeautifulSoup(resp.text, "html.parser")
 
     listings = []
-    for item in resp.json().get("itemSummaries", []):
-        price_val  = item.get("price", {}).get("value", 0)
-        price_cents = int(float(price_val) * 100)
+    for item in soup.select(".s-item"):
+        title_el = item.select_one(".s-item__title")
+        price_el = item.select_one(".s-item__price")
+        link_el  = item.select_one("a.s-item__link")
+        cond_el  = item.select_one(".SECONDARY_INFO, .s-item__subtitle")
+        loc_el   = item.select_one(".s-item__location")
+
+        if not title_el or not price_el or not link_el:
+            continue
+
+        title = title_el.get_text(strip=True)
+        if title.lower() == "shop on ebay":   # skip injected promo tile
+            continue
+
+        price_cents = _parse_price(price_el.get_text(strip=True)) or 0
+        url         = link_el.get("href", "").split("?")[0]
+        condition   = cond_el.get_text(strip=True) if cond_el else ""
+        location    = loc_el.get_text(strip=True).replace("From ", "") if loc_el else ""
+
         listings.append({
-            "title":       item.get("title", ""),
+            "title":       title,
             "price_cents": price_cents,
-            "condition":   item.get("condition", ""),
-            "url":         item.get("itemWebUrl", ""),
-            "image":       item.get("image", {}).get("imageUrl", ""),
-            "location":    item.get("itemLocation", {}).get("city", ""),
-            "distance":    item.get("distanceMiles"),
+            "condition":   condition,
+            "url":         url,
+            "location":    location,
+            "distance":    None,   # not available from scrape
         })
+
+    if not listings:
+        return {"error": "No local listings found — eBay may have blocked the request or there are no results nearby.", "listings": []}
+
     return {"listings": listings}
 
 
