@@ -72,18 +72,19 @@ def prices():
     title   = pc_data.get("title", game_name)
     console_display = scraper.CONSOLES.get(console_key, {}).get("name", "")
     dk_data     = scraper.get_dkoldies_price(game_name or title, console_display)
-    dk_buy_data = scraper.get_dkoldies_buy_price(game_name or title)
+    dk_buy_data = scraper.get_dkoldies_buy_price(game_name or title, console_key)
 
     result = {
-        "pc_console":    pc_console,
-        "slug":          slug,
-        "title":         title,
-        "pc_url":        pc_data.get("url", ""),
-        "dk_url":        dk_data.get("url", "") if dk_data else "",
-        "prices":        pc_data.get("prices", {}),
-        "dk_price":      dk_data.get("price_cents") if dk_data else None,
-        "dk_buy_price":  dk_buy_data.get("buy_cents") if dk_buy_data else None,
-        "dk_buy_name":   dk_buy_data.get("name") if dk_buy_data else None,
+        "pc_console":       pc_console,
+        "slug":             slug,
+        "title":            title,
+        "pc_url":           pc_data.get("url", ""),
+        "dk_url":           dk_data.get("url", "") if dk_data else "",
+        "prices":           pc_data.get("prices", {}),
+        "dk_price":         dk_data.get("price_cents") if dk_data else None,
+        "dk_buy_price":     dk_buy_data.get("buy_cents")     if dk_buy_data else None,
+        "dk_buy_name":      dk_buy_data.get("name")          if dk_buy_data else None,
+        "dk_buy_condition": dk_buy_data.get("buy_condition") if dk_buy_data else None,
     }
 
     db.save(result)

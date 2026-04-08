@@ -351,7 +351,7 @@
           <div class="dko-label">DK Oldies buys for</div>
           <div class="dko-price" id="dko-buy-price">—</div>
         </div>
-        <div style="font-size:0.68rem;color:var(--muted);text-align:right;">from their<br>sell page</div>
+        <div style="font-size:0.68rem;color:var(--muted);text-align:right;" id="dko-buy-condition-label">from their<br>sell page</div>
       </div>
     </div>
 
@@ -423,8 +423,9 @@ function renderResults(results) {
     const loose = r.loose_cents  || 0;
     const dkBuy = r.dk_buy_cents || 0;
     const isGold = dkBuy > 0 && loose > 0 && dkBuy > loose;
+    const dkCond = r.dk_buy_condition ? ` · ${r.dk_buy_condition}` : "";
     const priceHtml = dkBuy
-      ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(dkBuy)}</div><div class="price-label">DK pays</div>`
+      ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(dkBuy)}</div><div class="price-label">DK pays${dkCond}</div>`
       : loose
         ? `<div class="top-price">$${cents(loose)}</div><div class="price-label">loose</div>`
         : "";
@@ -503,8 +504,11 @@ function renderPrices(data, pc_console) {
     showSection = true;
   }
   if (data.dk_buy_price) {
-    document.getElementById("dko-buy-price").textContent  = "$" + cents(data.dk_buy_price);
-    document.getElementById("dko-buy-row").style.display  = "";
+    document.getElementById("dko-buy-price").textContent = "$" + cents(data.dk_buy_price);
+    const condLabel = data.dk_buy_condition || "";
+    document.getElementById("dko-buy-condition-label").innerHTML =
+      condLabel ? `${condLabel}<br>price` : `from their<br>sell page`;
+    document.getElementById("dko-buy-row").style.display = "";
     showSection = true;
   }
   if (showSection) document.getElementById("dko-section").style.display = "";

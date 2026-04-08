@@ -341,7 +341,17 @@ def _normalise(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def get_dkoldies_buy_price(game_name):
+# Consoles where DK Oldies lists their buylist price as cart/cartridge only.
+# Everything else is priced as complete-in-box.
+DKO_CART_ONLY_CONSOLES = {"nes", "snes", "genesis", "atari2600"}
+
+
+def dko_buy_condition_label(console_key: str) -> str:
+    """Return the condition label DK Oldies uses for buylist prices on a given console."""
+    return "cart only" if console_key in DKO_CART_ONLY_CONSOLES else "complete"
+
+
+def get_dkoldies_buy_price(game_name, console_key=""):
     """Return what DK Oldies will pay for a game (from their sell page), or None."""
     global _dko_buylist_cache
     now = time.time()
@@ -372,7 +382,11 @@ def get_dkoldies_buy_price(game_name):
     # Require at least 50% word overlap to count as a match
     if best_score >= 0.5 and best_key:
         entry = buylist[best_key]
-        return {"name": entry["name"], "buy_cents": entry["cents"]}
+        return {
+            "name":            entry["name"],
+            "buy_cents":       entry["cents"],
+            "buy_condition":   dko_buy_condition_label(console_key),
+        }
     return None
 
 
