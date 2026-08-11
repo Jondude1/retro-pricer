@@ -41,6 +41,11 @@ def index():
     return render_template("index.html", consoles=scraper.CONSOLES, history=history)
 
 
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html", updated=time.strftime("%B %-d, %Y"))
+
+
 @app.route("/search")
 def search():
     q = request.args.get("q", "").strip()
