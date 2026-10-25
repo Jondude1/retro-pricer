@@ -518,7 +518,9 @@ function showDetailView() {
   if (!(history.state && history.state.view === "detail")) history.pushState({ view: "detail" }, "");
 }
 // Android back button / browser back: close the sheet, then leave the detail view, then other tabs
+let ignorePop = false;
 window.addEventListener("popstate", () => {
+  if (ignorePop) { ignorePop = false; return; }
   if ($("sheet").classList.contains("show")) { closeSheet(true); return; }
   if (!$("detail-view").classList.contains("hidden")) { showSearchView(); if (!$("q").value.trim()) renderHistory(); return; }
   if (!$("tab-price").classList.contains("active")) showTab("price", true);
@@ -829,7 +831,7 @@ function openSheet(it) {
 function closeSheet(fromHistory) {
   if (!$("sheet").classList.contains("show")) return;
   $("sheet").classList.remove("show"); $("sheet-bg").classList.remove("show");
-  if (!fromHistory && history.state && history.state.view === "sheet") history.back();
+  if (!fromHistory && history.state && history.state.view === "sheet") { ignorePop = true; history.back(); }
 }
 $("sheet-bg").addEventListener("click", () => closeSheet());
 $("f-cancel").addEventListener("click", () => closeSheet());
