@@ -442,7 +442,8 @@ const CHANNEL_LABEL = { ebay: "eBay", mercari: "Mercari", buylist: "DK Oldies", 
 
 // ═══════════════ Tabs ═══════════════
 document.querySelectorAll("nav.tabbar button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
-function showTab(name) {
+function showTab(name, fromHistory) {
+  if (!fromHistory && name !== "price" && $("tab-price").classList.contains("active")) history.pushState({ view: "tab" }, "");
   document.querySelectorAll("nav.tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
   if (name === "inv") loadInventory();
@@ -510,9 +511,18 @@ function remember(d) {
 }
 
 // ═══════════════ Detail ═══════════════
-$("btn-back").addEventListener("click", () => { showSearchView(); if (!$("q").value.trim()) renderHistory(); });
+$("btn-back").addEventListener("click", () => history.back());
 function showSearchView() { $("search-view").classList.remove("hidden"); $("detail-view").classList.add("hidden"); }
-function showDetailView() { $("search-view").classList.add("hidden"); $("detail-view").classList.remove("hidden"); window.scrollTo(0, 0); }
+function showDetailView() {
+  $("search-view").classList.add("hidden"); $("detail-view").classList.remove("hidden"); window.scrollTo(0, 0);
+  if (!(history.state && history.state.view === "detail")) history.pushState({ view: "detail" }, "");
+}
+// Android back button / browser back: close the sheet, then leave the detail view, then other tabs
+window.addEventListener("popstate", () => {
+  if ($("sheet").classList.contains("show")) { closeSheet(true); return; }
+  if (!$("detail-view").classList.contains("hidden")) { showSearchView(); if (!$("q").value.trim()) renderHistory(); return; }
+  if (!$("tab-price").classList.contains("active")) showTab("price", true);
+});
 
 async function openGame(g, scan) {
   showDetailView();
@@ -814,10 +824,15 @@ function openSheet(it) {
   $("f-delete").classList.toggle("hidden", !it.id);
   $("sheet").dataset.pc = JSON.stringify({ pc_console: it.pc_console || "", slug: it.slug || "" });
   $("sheet").classList.add("show"); $("sheet-bg").classList.add("show");
+  history.pushState({ view: "sheet" }, "");
 }
-function closeSheet() { $("sheet").classList.remove("show"); $("sheet-bg").classList.remove("show"); }
-$("sheet-bg").addEventListener("click", closeSheet);
-$("f-cancel").addEventListener("click", closeSheet);
+function closeSheet(fromHistory) {
+  if (!$("sheet").classList.contains("show")) return;
+  $("sheet").classList.remove("show"); $("sheet-bg").classList.remove("show");
+  if (!fromHistory && history.state && history.state.view === "sheet") history.back();
+}
+$("sheet-bg").addEventListener("click", () => closeSheet());
+$("f-cancel").addEventListener("click", () => closeSheet());
 // Fill in estimated fees when a sale price + channel are entered and fees are blank
 ["f-sold", "f-channel"].forEach(id => $(id).addEventListener("change", () => {
   const sold = toCents($("f-sold").value), ch = $("f-channel").value, s = settings();
