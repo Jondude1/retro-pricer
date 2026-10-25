@@ -2,759 +2,897 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Retro Price Check</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Retro Pricer</title>
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RetroPrice">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="icon" href="/static/icon-192.png">
 <style>
   :root {
-    --bg:     #0f0f0f;
-    --card:   #1a1a1a;
-    --card2:  #222;
-    --border: #2a2a2a;
-    --accent: #00e5a0;
-    --danger: #ff4d4d;
-    --warn:   #ffaa00;
-    --text:   #f0f0f0;
-    --muted:  #777;
-    --steal:  #00e5a0;
-    --good:   #4caf50;
-    --fair:   #ffaa00;
-    --pass:   #ff4d4d;
-    --gold:   #FFD700;
+    --bg: #0f0f0f; --card: #1a1a1a; --card2: #222; --border: #2a2a2a;
+    --accent: #00e5a0; --accent-dim: #0d2a1e; --danger: #ff4d4d; --warn: #ffaa00;
+    --text: #f0f0f0; --muted: #8a8a8a; --good: #4caf50; --gold: #ffd700;
+    --nav-h: 62px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overscroll-behavior: none; }
+  html, body { min-height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         overscroll-behavior: none; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); font-size: 15px; }
+  button { font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+  a { color: var(--accent); }
 
-  /* ── Header ── */
-  header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
-    display: flex; align-items: center; gap: 10px;
-    position: sticky; top: 0; z-index: 200;
-  }
-  header h1 { font-size: 1.05rem; color: var(--accent); font-weight: 800; letter-spacing: -0.3px; flex: 1; }
-  .btn-scan-header {
-    background: var(--accent); color: #000; border: none;
-    border-radius: 10px; padding: 9px 14px; font-size: 1.1rem;
-    cursor: pointer; font-weight: 700; line-height: 1;
-    flex-shrink: 0;
-  }
-  .btn-scan-header:active { opacity: 0.75; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex;
+           align-items: center; gap: 10px; position: sticky; top: 0; z-index: 200; }
+  header h1 { font-size: 1.05rem; color: var(--accent); font-weight: 800; flex: 1; letter-spacing: -0.3px; }
+  .net-pill { font-size: 0.7rem; font-weight: 700; border-radius: 12px; padding: 4px 9px; background: #2a1f00; color: var(--warn);
+              border: 1px solid #5a4300; display: none; }
+  .net-pill.show { display: inline-block; }
 
-  /* ── Search bar ── */
-  .search-bar {
-    display: flex; gap: 8px; align-items: center;
-    padding: 10px 14px 0;
-    background: var(--card);
-  }
-  .search-input {
-    flex: 1; background: var(--bg); border: 1.5px solid var(--border);
-    border-radius: 10px; padding: 13px 14px; color: var(--text);
-    font-size: 1rem; outline: none; min-width: 0;
-    transition: border-color 0.15s;
-  }
-  .search-input:focus { border-color: var(--accent); }
-  .btn-go {
-    background: var(--accent); color: #000; border: none;
-    border-radius: 10px; padding: 13px 18px; font-size: 1rem;
-    font-weight: 800; cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  }
-  .btn-go:active { opacity: 0.75; }
+  /* Tabs */
+  .tab { display: none; }
+  .tab.active { display: block; }
+  nav.tabbar { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+               padding-bottom: env(safe-area-inset-bottom); background: var(--card); border-top: 1px solid var(--border);
+               display: flex; z-index: 300; }
+  nav.tabbar button { flex: 1; background: none; border: none; color: var(--muted); font-size: 0.68rem; font-weight: 700;
+                      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; }
+  nav.tabbar button .ico { font-size: 1.25rem; line-height: 1; }
+  nav.tabbar button.active { color: var(--accent); }
 
-  /* ── Console chips ── */
-  .chip-scroll {
-    display: flex; gap: 7px; overflow-x: auto; padding: 10px 14px 12px;
-    background: var(--card); border-bottom: 1px solid var(--border);
-    scrollbar-width: none;
-  }
-  .chip-scroll::-webkit-scrollbar { display: none; }
-  .chip {
-    flex-shrink: 0; background: var(--bg); border: 1.5px solid var(--border);
-    color: var(--muted); border-radius: 20px; padding: 6px 13px;
-    font-size: 0.8rem; font-weight: 600; cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-    white-space: nowrap;
-  }
-  .chip.active, .chip:active {
-    border-color: var(--accent); color: var(--accent); background: #0d2a1e;
-  }
-
-  /* ── Scan panel ── */
-  #scan-panel { display: none; padding: 14px; background: #111; border-bottom: 1px solid var(--border); }
-  #scan-panel h3 { font-size: 0.8rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  #scan-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; display: none; margin-bottom: 10px; border: 1px solid var(--border); }
-  .scan-status { font-size: 0.9rem; color: var(--muted); margin: 8px 0; min-height: 20px; }
-  .scan-status.active { color: var(--accent); }
-  .photo-request { background: #1e2a1e; border: 1px solid #2a4a2a; border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: #90ee90; margin: 8px 0; display: none; }
-  .btn-photo { width: 100%; background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 4px; }
-  .btn-photo:active { opacity: 0.75; }
-  .btn-photo-2 { width: 100%; background: #1a3a2a; border: 1.5px solid var(--accent); color: var(--accent); border-radius: 10px; padding: 12px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 8px; display: none; }
-
-  /* ── Results ── */
-  #results { padding-bottom: 24px; }
-  .result-item {
-    padding: 15px 14px; border-bottom: 1px solid var(--border);
-    cursor: pointer; display: flex; justify-content: space-between;
-    align-items: center; gap: 12px; min-height: 64px;
-    transition: background 0.1s;
-  }
-  .result-item:active { background: var(--card); }
-  .result-left { flex: 1; min-width: 0; }
-  .result-name { font-size: 0.97rem; font-weight: 700; line-height: 1.25; }
-  .result-console { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
-  .result-price { text-align: right; flex-shrink: 0; }
-  .result-price .top-price { font-size: 1.05rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
-  .result-price .top-price.gold { color: var(--gold); }
-  .result-price .price-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-top: 2px; }
+  /* Common */
+  .pad { padding: 12px 14px; }
   .section-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 14px 6px; }
-
-  /* ── Detail ── */
-  #detail { display: none; }
-  .detail-header {
-    padding: 13px 14px; background: var(--card); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px;
-    position: sticky; top: 53px; z-index: 100;
-  }
-  .btn-back {
-    background: none; border: 1.5px solid var(--border); color: var(--muted);
-    border-radius: 8px; padding: 7px 12px; font-size: 0.85rem;
-    cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  }
-  .btn-back:active { background: var(--card2); }
-  .detail-title-wrap { flex: 1; min-width: 0; }
-  .detail-title-wrap h2 { font-size: 0.95rem; font-weight: 700; line-height: 1.2; }
-  .detail-console { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-
-  /* ── Condition badge ── */
-  .condition-row { padding: 12px 14px 4px; }
-  .condition-badge { display: inline-block; background: #1a2a1a; border: 1px solid #3a5a3a; color: #90ee90; border-radius: 20px; padding: 5px 12px; font-size: 0.78rem; font-weight: 700; }
-  .condition-grade { font-size: 0.72rem; color: var(--muted); margin-left: 6px; }
-  .condition-notes { font-size: 0.78rem; color: var(--muted); margin-top: 5px; line-height: 1.4; }
-  .resale-notes { font-size: 0.78rem; color: #aaa; margin-top: 8px; line-height: 1.45; }
-  .resale-notes strong { color: var(--text); }
-
-  /* ── Price grid ── */
-  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px 14px; }
-  .price-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px; text-align: center; }
-  .price-card.hi { border-color: var(--accent); }
-  .price-card .p-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-  .price-card .p-val { font-size: 1.35rem; font-weight: 900; }
-  .price-card.hi .p-val { color: var(--accent); }
-  .price-card .p-note { font-size: 0.65rem; color: var(--muted); margin-top: 3px; }
-
-  /* ── DK rows ── */
-  .dko-section { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
-  .dko-card {
-    background: var(--card); border: 1.5px solid var(--border);
-    border-radius: 12px; padding: 12px 14px;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .dko-card.buy { border-color: #00e5a044; background: #0a1f18; }
-  .dko-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 3px; }
-  .dko-price { font-size: 1.15rem; font-weight: 800; }
-  .dko-card.buy .dko-price { color: var(--accent); }
-  .dko-link { font-size: 0.72rem; color: var(--accent); text-decoration: none; }
-
-  /* ── Deal calc ── */
-  .calc-section { padding: 4px 14px 16px; }
-  .calc-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; margin-top: 4px; }
-  .pawn-row { display: flex; align-items: center; gap: 8px; }
-  .pawn-prefix { font-size: 1.4rem; color: var(--muted); font-weight: 300; }
-  .pawn-input {
-    flex: 1; background: var(--bg); border: 2px solid var(--border);
-    border-radius: 10px; padding: 15px 12px; color: var(--text);
-    font-size: 1.5rem; font-weight: 800; outline: none;
-    transition: border-color 0.15s;
-  }
-  .pawn-input:focus { border-color: var(--accent); }
-
-  /* ── Deal cards ── */
-  #deal-result { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-  .deal-card { border-radius: 12px; padding: 14px 16px; }
-  .deal-card.steal { background: #0d2a1e; border: 1.5px solid var(--steal); }
-  .deal-card.good  { background: #0d1f0d; border: 1.5px solid var(--good); }
-  .deal-card.fair  { background: #2a1f00; border: 1.5px solid var(--warn); }
-  .deal-card.pass  { background: #2a0d0d; border: 1.5px solid var(--danger); }
-  .deal-top { display: flex; justify-content: space-between; align-items: center; }
-  .deal-verdict { font-size: 1.05rem; font-weight: 800; }
-  .deal-cond { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-  .deal-profit-val { font-size: 1.25rem; font-weight: 900; text-align: right; }
-  .deal-margin { font-size: 0.72rem; color: var(--muted); text-align: right; }
-
-  /* ── PC link ── */
-  .pc-link-row { padding: 4px 14px 28px; text-align: center; }
-  .pc-link-row a { font-size: 0.72rem; color: var(--muted); text-decoration: none; }
-
-  /* ── History ── */
-  .history-item {
-    padding: 13px 14px; border-bottom: 1px solid var(--border);
-    cursor: pointer; display: flex; justify-content: space-between;
-    align-items: center; min-height: 56px;
-  }
-  .history-item:active { background: var(--card); }
-  .history-name { font-size: 0.92rem; font-weight: 600; }
-  .history-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-  .history-price { font-size: 0.9rem; color: var(--accent); font-weight: 800; }
-
-  /* ── Local Deals Panel ── */
-  .btn-local-header {
-    background: #0d2a1e; color: var(--accent); border: 1.5px solid var(--accent);
-    border-radius: 10px; padding: 9px 12px; font-size: 1.05rem;
-    cursor: pointer; line-height: 1; flex-shrink: 0;
-  }
-  .btn-local-header:active { opacity: 0.75; }
-  #local-panel { display: none; padding: 14px; background: #111; border-bottom: 1px solid var(--border); }
-  #local-panel h3 { font-size: 0.8rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .local-loc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .btn-detect { background: var(--card); border: 1.5px solid var(--accent); color: var(--accent); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  .btn-detect:active { opacity: 0.75; }
-  .loc-status { font-size: 0.8rem; color: var(--muted); flex: 1; min-width: 0; }
-  .local-filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
-  .local-q { flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 0.9rem; outline: none; min-width: 0; }
-  .local-q:focus { border-color: var(--accent); }
-  .local-radius { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 8px; color: var(--text); font-size: 0.85rem; outline: none; }
-  .btn-local-go { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 11px 16px; font-size: 0.9rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
-  .btn-local-go:active { opacity: 0.75; }
-  .ebay-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; gap: 10px; text-decoration: none; color: var(--text); transition: border-color 0.15s; }
-  .ebay-card:active { border-color: var(--accent); }
-  .ebay-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; background: #222; flex-shrink: 0; }
-  .ebay-info { flex: 1; min-width: 0; }
-  .ebay-title { font-size: 0.87rem; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
-  .ebay-meta { font-size: 0.72rem; color: var(--muted); }
-  .ebay-price-col { text-align: right; flex-shrink: 0; }
-  .ebay-price { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
-  .ebay-badge { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
-
-  /* ── Utility ── */
-  .spinner { display: inline-block; width: 17px; height: 17px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-row { padding: 24px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  .card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .btn { background: var(--accent); color: #000; border: none; border-radius: 10px; padding: 13px 16px; font-size: 0.95rem;
+         font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .btn:active { opacity: 0.75; }
+  .btn.ghost { background: var(--accent-dim); color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn.plain { background: var(--card2); color: var(--text); border: 1.5px solid var(--border); }
+  .btn.small { padding: 9px 12px; font-size: 0.82rem; }
+  .btn.block { width: 100%; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .input { flex: 1; min-width: 0; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px;
+           color: var(--text); font-size: 1rem; outline: none; }
+  .input:focus { border-color: var(--accent); }
+  .muted { color: var(--muted); }
+  .small-text { font-size: 0.78rem; }
   .hidden { display: none !important; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent);
+             border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row { padding: 22px 16px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  .err { color: var(--danger); }
+  .money-pos { color: var(--accent); }
+  .money-neg { color: var(--danger); }
+
+  /* Search */
+  .search-wrap { background: var(--card); padding: 10px 14px 0; }
+  .chip-scroll { display: flex; gap: 7px; overflow-x: auto; padding: 10px 14px 12px; background: var(--card);
+                 border-bottom: 1px solid var(--border); scrollbar-width: none; }
+  .chip-scroll::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; background: var(--bg); border: 1.5px solid var(--border); color: var(--muted); border-radius: 20px;
+          padding: 6px 13px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .list-item { padding: 14px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between;
+               align-items: center; gap: 12px; min-height: 60px; }
+  .list-item:active { background: var(--card); }
+  .li-main { flex: 1; min-width: 0; }
+  .li-title { font-size: 0.96rem; font-weight: 700; line-height: 1.25; }
+  .li-sub { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+  .li-right { text-align: right; flex-shrink: 0; }
+  .li-price { font-size: 1.02rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
+  .li-price.gold { color: var(--gold); }
+  .li-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-top: 2px; }
+
+  /* Scan */
+  .scan-panel { padding: 14px; background: #111; border-bottom: 1px solid var(--border); }
+  .scan-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; display: none; margin-bottom: 10px; border: 1px solid var(--border); }
+  .scan-status { font-size: 0.9rem; color: var(--muted); margin: 8px 0; min-height: 20px; }
+  .note-box { background: #1e2a1e; border: 1px solid #2a4a2a; border-radius: 8px; padding: 10px 12px; font-size: 0.85rem; color: #90ee90; margin: 8px 0; }
+
+  /* Detail */
+  .detail-header { padding: 12px 14px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center;
+                   gap: 10px; position: sticky; top: 52px; z-index: 100; }
+  .btn-back { background: none; border: 1.5px solid var(--border); color: var(--muted); border-radius: 8px; padding: 7px 12px; font-size: 0.85rem; cursor: pointer; }
+  .detail-title { font-size: 0.98rem; font-weight: 700; line-height: 1.2; }
+  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px 14px 4px; }
+  .price-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+  .price-card .p-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .price-card .p-val { font-size: 1.3rem; font-weight: 900; }
+  .price-card.buy { border-color: #00e5a066; background: #0a1f18; }
+  .price-card.buy .p-val { color: var(--accent); }
+  .stamp { font-size: 0.7rem; color: var(--muted); padding: 2px 14px 8px; }
+
+  .grade-row { display: flex; gap: 6px; padding: 4px 14px 10px; flex-wrap: wrap; align-items: center; }
+  .grade-row .lbl { font-size: 0.72rem; color: var(--muted); margin-right: 2px; }
+  .seg { background: var(--bg); border: 1.5px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 10px;
+         font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+  .seg.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .ask-row { display: flex; align-items: center; gap: 8px; }
+  .ask-prefix { font-size: 1.4rem; color: var(--muted); }
+  .ask-input { flex: 1; min-width: 0; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 14px 12px;
+               color: var(--text); font-size: 1.45rem; font-weight: 800; outline: none; }
+  .ask-input:focus { border-color: var(--accent); }
+
+  .verdict { border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
+  .verdict.steal { background: #0d2a1e; border: 1.5px solid var(--accent); }
+  .verdict.good  { background: #0d1f0d; border: 1.5px solid var(--good); }
+  .verdict.fair  { background: #2a1f00; border: 1.5px solid var(--warn); }
+  .verdict.pass  { background: #2a0d0d; border: 1.5px solid var(--danger); }
+  .verdict-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .verdict-label { font-size: 1.1rem; font-weight: 900; }
+  .verdict-sub { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+  .verdict-profit { font-size: 1.3rem; font-weight: 900; text-align: right; }
+  .flip-banner { background: #2b2500; border: 1.5px solid var(--gold); color: var(--gold); border-radius: 12px; padding: 11px 14px;
+                 margin-top: 10px; font-weight: 800; font-size: 0.9rem; }
+  .maxoffer { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .maxoffer .big { font-size: 1.25rem; font-weight: 900; color: var(--accent); }
+
+  table.exits { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; }
+  table.exits th { text-align: left; color: var(--muted); font-weight: 600; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.4px;
+                   padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  table.exits td { padding: 8px 4px; border-bottom: 1px solid var(--border); }
+  table.exits td.num, table.exits th.num { text-align: right; white-space: nowrap; }
+  table.exits tr.best td { color: var(--accent); font-weight: 700; }
+
+  .repro { margin: 10px 14px 0; border-radius: 12px; padding: 12px 14px; background: #2a1600; border: 1.5px solid var(--warn); }
+  .repro.high { background: #2a0d0d; border-color: var(--danger); }
+  .repro summary { font-weight: 800; font-size: 0.88rem; cursor: pointer; }
+  .repro ul { margin: 8px 0 0 18px; font-size: 0.8rem; line-height: 1.45; color: #ddd; }
+  .cond-box { margin: 10px 14px 0; }
+  .badge { display: inline-block; background: #1a2a1a; border: 1px solid #3a5a3a; color: #90ee90; border-radius: 20px; padding: 4px 11px;
+           font-size: 0.76rem; font-weight: 700; }
+  .link-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; }
+  .link-row a { text-align: center; text-decoration: none; }
+
+  /* Lot */
+  .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 12px 14px; }
+  .stat { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 12px; }
+  .stat .k { font-size: 0.64rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .stat .v { font-size: 1.2rem; font-weight: 900; margin-top: 3px; }
+  .stat.hi { border-color: var(--accent); }
+  .stat.hi .v { color: var(--accent); }
+  textarea.input { min-height: 110px; resize: vertical; font-size: 0.92rem; line-height: 1.4; }
+  .lot-flag { color: var(--warn); font-size: 0.7rem; font-weight: 700; }
+
+  /* Inventory */
+  .inv-filters { display: flex; gap: 6px; padding: 4px 14px 8px; }
+  .sheet-bg { position: fixed; inset: 0; background: #000a; z-index: 400; display: none; }
+  .sheet-bg.show { display: block; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top-left-radius: 16px; border-top-right-radius: 16px;
+           z-index: 401; padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; display: none; }
+  .sheet.show { display: block; }
+  .sheet h3 { font-size: 1rem; margin-bottom: 12px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .field .input { width: 100%; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* Settings */
+  .set-group { margin: 0 14px 12px; }
+  .set-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .set-row label { font-size: 0.88rem; flex: 1; }
+  .set-row input { width: 96px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px; color: var(--text);
+                   font-size: 0.95rem; text-align: right; outline: none; }
+  .set-row input:focus { border-color: var(--accent); }
+  .ebay-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 11px; margin-bottom: 9px; display: flex;
+               gap: 10px; text-decoration: none; color: var(--text); }
+  .ebay-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #222; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <header>
-  <div style="font-size:1.3rem">🕹️</div>
-  <h1>Retro Price Check</h1>
-  <button class="btn-local-header" id="btn-open-local" title="eBay Local Deals">📍</button>
-  <button class="btn-scan-header" id="btn-open-scan" title="Scan with camera">📷</button>
+  <div style="font-size:1.25rem">🕹️</div>
+  <h1>Retro Pricer</h1>
+  <span class="net-pill" id="offline-pill">Offline · cached prices</span>
 </header>
 
-<!-- Search -->
-<div class="search-bar">
-  <input id="q" type="search" class="search-input" placeholder="Game title…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
-  <button class="btn-go" id="btn-search">Search</button>
-</div>
-
-<!-- Console chips -->
-<div class="chip-scroll" id="chip-scroll">
-  <div class="chip active" data-console="">All</div>
-  {% for key, info in consoles.items() %}
-  <div class="chip" data-console="{{ key }}">{{ info.name }}</div>
-  {% endfor %}
-</div>
-
-<!-- Local Deals Panel -->
-<div id="local-panel">
-  <h3>📍 eBay Local Pickup Deals</h3>
-  <div class="local-loc-row">
-    <button class="btn-detect" id="btn-detect">📍 Detect Location</button>
-    <span class="loc-status" id="loc-status">No location set</span>
-  </div>
-  <div class="local-filter-row">
-    <input class="local-q" id="local-q" type="text" placeholder="e.g. N64 game lot" value="retro games">
-    <select class="local-radius" id="local-radius">
-      <option value="10">10 mi</option>
-      <option value="25" selected>25 mi</option>
-      <option value="50">50 mi</option>
-    </select>
-    <button class="btn-local-go" onclick="searchLocal()">Go</button>
-  </div>
-  <div id="local-results"></div>
-</div>
-
-<!-- Camera Scan Panel -->
-<div id="scan-panel">
-  <h3>📷 Scan a Game</h3>
-  <img id="scan-preview" src="" alt="Preview">
-  <p class="scan-status" id="scan-status">Take a photo — Claude will identify the game and assess condition.</p>
-  <div class="photo-request" id="photo-request-box"></div>
-  <input type="file" id="scan-file" accept="image/*" capture="environment" style="display:none">
-  <button class="btn-photo" id="btn-take-photo">📸 Take Photo</button>
-  <button class="btn-photo-2" id="btn-another-photo">📸 Take Another Photo</button>
-</div>
-
-<!-- Main area -->
-<div id="main">
-
-  <!-- Search results / history -->
-  <div id="results">
-    {% if history %}
-    <div class="section-label">Recently Looked Up</div>
-    {% for h in history %}
-    <div class="history-item" onclick="loadGame('{{ h.pc_console }}','{{ h.slug }}','{{ h.game_title or "" }}','')">
-      <div>
-        <div class="history-name">{{ h.game_title or h.slug }}</div>
-        <div class="history-meta">{{ h.pc_console }}</div>
+<!-- ═════════════════════════ PRICE TAB ═════════════════════════ -->
+<section class="tab active" id="tab-price">
+  <div id="search-view">
+    <div class="search-wrap">
+      <div class="row">
+        <input id="q" type="search" class="input" placeholder="Game title…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+        <button class="btn" id="btn-search">Search</button>
+        <button class="btn ghost" id="btn-open-scan" title="Scan with camera" aria-label="Scan with camera">📷</button>
       </div>
-      {% if h.loose_price %}
-      <div class="history-price">${{ "%.2f"|format(h.loose_price/100) }}</div>
-      {% endif %}
     </div>
-    {% endfor %}
-    {% endif %}
+    <div class="chip-scroll" id="chip-scroll">
+      <div class="chip active" data-console="">All</div>
+      {% for key, info in consoles.items() %}<div class="chip" data-console="{{ key }}">{{ info.name }}</div>{% endfor %}
+    </div>
+
+    <div class="scan-panel hidden" id="scan-panel">
+      <img class="scan-preview" id="scan-preview" alt="">
+      <p class="scan-status" id="scan-status">Take a photo of the game. It will be identified and its condition graded.</p>
+      <div class="note-box hidden" id="photo-request-box"></div>
+      <input type="file" id="scan-file" accept="image/*" capture="environment" class="hidden">
+      <button class="btn block" id="btn-take-photo">📸 Take Photo</button>
+    </div>
+
+    <div id="results"></div>
   </div>
 
-  <!-- Game detail -->
-  <div id="detail">
+  <div id="detail-view" class="hidden">
     <div class="detail-header">
-      <button class="btn-back" onclick="showSearch()">← Back</button>
-      <div class="detail-title-wrap">
-        <h2 id="detail-title">—</h2>
-        <div class="detail-console" id="detail-console">—</div>
+      <button class="btn-back" id="btn-back">← Back</button>
+      <div style="flex:1;min-width:0">
+        <div class="detail-title" id="d-title">—</div>
+        <div class="li-sub" id="d-console">—</div>
       </div>
     </div>
 
-    <!-- Scan condition -->
-    <div id="condition-row" class="hidden condition-row">
-      <span class="condition-badge" id="condition-badge"></span>
-      <span class="condition-grade" id="condition-grade"></span>
-      <div class="condition-notes" id="condition-notes"></div>
-      <div class="resale-notes hidden" id="resale-notes-box"><strong>Resale note:</strong> <span id="resale-notes"></span></div>
+    <div class="cond-box hidden" id="d-cond">
+      <span class="badge" id="d-cond-badge"></span>
+      <div class="small-text muted" id="d-cond-notes" style="margin-top:6px;line-height:1.4"></div>
+      <div class="small-text" id="d-auth-notes" style="margin-top:6px;color:var(--warn)"></div>
+      <div class="small-text muted" id="d-resale" style="margin-top:6px;line-height:1.4"></div>
     </div>
 
-    <!-- Price cards -->
-    <div class="prices-grid" id="prices-grid">
-      <div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>
+    <div class="prices-grid" id="d-prices"><div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div></div>
+    <div class="stamp" id="d-stamp"></div>
+
+    <div class="repro hidden" id="d-repro"><details><summary id="d-repro-title"></summary><ul id="d-repro-list"></ul></details></div>
+
+    <div class="grade-row" id="cond-row">
+      <span class="lbl">They have:</span>
+      <button class="seg active" data-cond="loose">Loose</button>
+      <button class="seg" data-cond="cib">Complete</button>
+      <button class="seg" data-cond="new">Sealed</button>
+    </div>
+    <div class="grade-row" id="grade-row">
+      <span class="lbl">Shape:</span>
+      <button class="seg" data-grade="Excellent">Excellent</button>
+      <button class="seg active" data-grade="Good">Good</button>
+      <button class="seg" data-grade="Fair">Fair</button>
+      <button class="seg" data-grade="Poor">Poor</button>
     </div>
 
-    <!-- DK Oldies -->
-    <div class="dko-section" id="dko-section" style="display:none">
-      <div class="dko-card" id="dko-row" style="display:none">
-        <div>
-          <div class="dko-label">DK Oldies sells for</div>
-          <div class="dko-price" id="dko-price">—</div>
-        </div>
-        <a class="dko-link" id="dko-link" href="#" target="_blank">View ↗</a>
+    <div class="pad">
+      <div class="section-label" style="padding:0 0 8px">What are they asking?</div>
+      <div class="ask-row">
+        <span class="ask-prefix">$</span>
+        <input type="number" id="ask" class="ask-input" placeholder="0.00" min="0" step="0.5" inputmode="decimal">
       </div>
-      <div class="dko-card buy" id="dko-buy-row" style="display:none">
-        <div>
-          <div class="dko-label">DK Oldies buys for</div>
-          <div class="dko-price" id="dko-buy-price">—</div>
-        </div>
-        <div style="font-size:0.68rem;color:var(--muted);text-align:right;" id="dko-buy-condition-label">from their<br>sell page</div>
-      </div>
+      <div id="d-eval"></div>
     </div>
 
-    <!-- Deal calculator -->
-    <div class="calc-section">
-      <div class="calc-label">What are they asking?</div>
-      <div class="pawn-row">
-        <span class="pawn-prefix">$</span>
-        <input type="number" id="pawn-price" class="pawn-input" placeholder="0.00" min="0" step="0.50" inputmode="decimal">
-      </div>
-      <div id="deal-result"></div>
+    <div class="link-row">
+      <a class="btn plain small" id="d-ebay-sold" href="#" target="_blank" rel="noopener">eBay sold ↗</a>
+      <a class="btn plain small" id="d-pc" href="#" target="_blank" rel="noopener">PriceCharting ↗</a>
     </div>
+    <div class="pad" style="padding-top:0"><button class="btn ghost block" id="d-add-inv">＋ Bought it — add to inventory</button></div>
+    <div style="height:20px"></div>
+  </div>
+</section>
 
-    <div class="pc-link-row">
-      <a id="pc-link" href="#" target="_blank">View full price history on PriceCharting ↗</a>
+<!-- ═════════════════════════ LOT TAB ═════════════════════════ -->
+<section class="tab" id="tab-lot">
+  <div class="pad">
+    <div class="li-title" style="margin-bottom:4px">Price a whole lot</div>
+    <div class="small-text muted" style="margin-bottom:12px">Photograph a pile or shelf of games, or type them in. You get the total value, a buylist floor, and the most you should offer.</div>
+    <input type="file" id="lot-file" accept="image/*" capture="environment" class="hidden">
+    <button class="btn block" id="btn-lot-photo">📸 Photograph the lot</button>
+    <div class="section-label" style="padding:14px 0 6px">Or type one game per line</div>
+    <textarea class="input" id="lot-text" style="width:100%" placeholder="Mario Kart 64, n64&#10;Tetris, gameboy&#10;Sonic 2, genesis"></textarea>
+    <button class="btn plain block" id="btn-lot-text" style="margin-top:8px">Price this list</button>
+    <div class="small-text muted" style="margin-top:6px">Console after a comma is optional: {{ consoles.keys()|list|join(", ") }}</div>
+  </div>
+  <img class="scan-preview" id="lot-preview" alt="" style="margin:0 14px 0;width:calc(100% - 28px)">
+  <div id="lot-results"></div>
+</section>
+
+<!-- ═════════════════════════ INVENTORY TAB ═════════════════════════ -->
+<section class="tab" id="tab-inv">
+  <div class="totals" id="inv-summary"></div>
+  <div class="inv-filters">
+    <button class="seg active" data-inv="unsold">In stock</button>
+    <button class="seg" data-inv="sold">Sold</button>
+    <button class="seg" data-inv="all">All</button>
+    <span style="flex:1"></span>
+    <button class="btn ghost small" id="btn-inv-add">＋ Add</button>
+  </div>
+  <div id="inv-list"></div>
+  <div class="pad"><a class="small-text muted" id="inv-csv" href="#">Export to CSV</a></div>
+</section>
+
+<!-- ═════════════════════════ SETTINGS TAB ═════════════════════════ -->
+<section class="tab" id="tab-more">
+  <div class="section-label">Your buying rules</div>
+  <div class="set-group">
+    <div class="set-row"><label for="s-target_roi_pct">Target return on cost (%)</label><input id="s-target_roi_pct" inputmode="decimal"></div>
+    <div class="set-row"><label for="s-min_profit_cents">Minimum profit per item ($)</label><input id="s-min_profit_cents" data-money inputmode="decimal"></div>
+  </div>
+  <div class="section-label">Selling costs</div>
+  <div class="set-group">
+    <div class="set-row"><label for="s-ebay_fee_pct">eBay final value fee (%)</label><input id="s-ebay_fee_pct" inputmode="decimal"></div>
+    <div class="set-row"><label for="s-ebay_order_fee_high">eBay per-order fee over $10 ($)</label><input id="s-ebay_order_fee_high" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-ebay_order_fee_low">eBay per-order fee $10 and under ($)</label><input id="s-ebay_order_fee_low" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-mercari_fee_pct">Mercari selling fee (%)</label><input id="s-mercari_fee_pct" inputmode="decimal"></div>
+    <div class="set-row"><label for="s-mercari_proc_pct">Mercari processing (%)</label><input id="s-mercari_proc_pct" inputmode="decimal"></div>
+    <div class="set-row"><label for="s-mercari_proc_flat">Mercari processing flat ($)</label><input id="s-mercari_proc_flat" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-ship_cart_cents">Shipping, loose cart ($)</label><input id="s-ship_cart_cents" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-ship_boxed_cents">Shipping, boxed/disc ($)</label><input id="s-ship_boxed_cents" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-supplies_cents">Supplies per item ($)</label><input id="s-supplies_cents" data-money inputmode="decimal"></div>
+    <div class="set-row"><label for="s-buylist_ship_cents">Buylist shipping per item ($)</label><input id="s-buylist_ship_cents" data-money inputmode="decimal"></div>
+  </div>
+  <div class="pad" style="padding-top:0"><button class="btn plain small" id="btn-reset-settings">Reset to defaults</button></div>
+
+  <div class="section-label">eBay local pickup deals</div>
+  <div class="pad" style="padding-top:0">
+    <div class="row" style="margin-bottom:8px">
+      <input class="input" id="local-zip" inputmode="numeric" maxlength="5" placeholder="ZIP">
+      <select class="input" id="local-radius" style="flex:0 0 90px"><option value="10">10 mi</option><option value="25" selected>25 mi</option><option value="50">50 mi</option></select>
     </div>
+    <div class="row"><input class="input" id="local-q" value="retro video games"><button class="btn" id="btn-local">Go</button></div>
+    <div id="local-results" style="margin-top:10px"></div>
   </div>
 
-</div><!-- /main -->
+  <div class="section-label">About</div>
+  <div class="pad small-text muted" style="padding-top:0;line-height:1.5">
+    Market values come from PriceCharting; buy prices from DK Oldies' public buylist. Profit figures are estimates — always check recent eBay sold listings for high-value items.
+    <br><a href="/privacy">Privacy policy</a> · v{{ version }}
+  </div>
+</section>
+
+<nav class="tabbar">
+  <button class="active" data-tab="price"><span class="ico">🔎</span>Price</button>
+  <button data-tab="lot"><span class="ico">📦</span>Lot</button>
+  <button data-tab="inv"><span class="ico">📒</span>Inventory</button>
+  <button data-tab="more"><span class="ico">⚙️</span>Settings</button>
+</nav>
+
+<!-- Inventory edit sheet -->
+<div class="sheet-bg" id="sheet-bg"></div>
+<div class="sheet" id="sheet">
+  <h3 id="sheet-title">Item</h3>
+  <input type="hidden" id="f-id">
+  <div class="field"><label>Title</label><input class="input" id="f-title"></div>
+  <div class="two">
+    <div class="field"><label>Console</label>
+      <select class="input" id="f-console_key"><option value="">—</option>{% for key, info in consoles.items() %}<option value="{{ key }}">{{ info.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Condition</label>
+      <select class="input" id="f-condition"><option value="loose">Loose</option><option value="cib">CIB</option><option value="new">New/Sealed</option><option value="lot">Lot</option></select></div>
+  </div>
+  <div class="two">
+    <div class="field"><label>Paid ($)</label><input class="input" id="f-paid" inputmode="decimal"></div>
+    <div class="field"><label>Market value ($)</label><input class="input" id="f-market" inputmode="decimal"></div>
+  </div>
+  <div class="field"><label>Where you bought it</label><input class="input" id="f-source" placeholder="Pawn shop, garage sale…"></div>
+  <div class="section-label" style="padding:10px 0 6px">Sale</div>
+  <div class="two">
+    <div class="field"><label>Sold for ($)</label><input class="input" id="f-sold" inputmode="decimal"></div>
+    <div class="field"><label>Channel</label>
+      <select class="input" id="f-channel"><option value="">—</option><option value="ebay">eBay</option><option value="mercari">Mercari</option><option value="buylist">Buylist</option><option value="local">Local / cash</option><option value="other">Other</option></select></div>
+  </div>
+  <div class="two">
+    <div class="field"><label>Fees ($)</label><input class="input" id="f-fees" inputmode="decimal"></div>
+    <div class="field"><label>Shipping ($)</label><input class="input" id="f-ship" inputmode="decimal"></div>
+  </div>
+  <div class="field"><label>Notes</label><input class="input" id="f-notes"></div>
+  <div class="row" style="margin-top:6px">
+    <button class="btn plain small" id="f-delete">Delete</button>
+    <span style="flex:1"></span>
+    <button class="btn plain small" id="f-cancel">Cancel</button>
+    <button class="btn small" id="f-save">Save</button>
+  </div>
+</div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let currentPrices  = {};
+"use strict";
+// ═══════════════ Storage & state ═══════════════
+const FEE_DEFAULTS = {{ fee_defaults|tojson }};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+function deviceId() {
+  let id = store.get("rp_device", null);
+  if (!id) {
+    const a = new Uint8Array(16); crypto.getRandomValues(a);
+    id = Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
+    store.set("rp_device", id);
+  }
+  return id;
+}
+const DEVICE = deviceId();
+function settings() { return Object.assign({}, FEE_DEFAULTS, store.get("rp_settings", {})); }
+
 let currentConsole = "";
-let scanContext    = null;
-let scanPhotoCount = 0;
+let current = null;       // current /prices payload
+let currentGrade = "Good";
+let currentCond = "loose";
+let scanContext = null, scanCount = 0;
 const MAX_SCAN_PHOTOS = 3;
 
-// ── Console chip selection ─────────────────────────────────────────────────
-document.querySelectorAll(".chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-    chip.classList.add("active");
-    currentConsole = chip.dataset.console;
-  });
-});
+// ═══════════════ Helpers ═══════════════
+const $ = id => document.getElementById(id);
+function esc(s) { return s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function money(c) { if (c == null || isNaN(c)) return "—"; const n = Math.abs(c) / 100; return (c < 0 ? "-$" : "$") + n.toFixed(n >= 1000 ? 0 : 2); }
+function toCents(v) { const n = parseFloat(String(v).replace(/[$,]/g, "")); return isNaN(n) ? null : Math.round(n * 100); }
+function fromCents(c) { return c == null ? "" : (c / 100).toFixed(2); }
+function ago(ts) {
+  if (!ts) return "";
+  const s = Date.now() / 1000 - ts;
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago";
+  return Math.round(s / 86400) + " days ago";
+}
+async function api(url, opts = {}) {
+  opts.headers = Object.assign({ "X-Device-Id": DEVICE }, opts.headers || {});
+  const r = await fetch(url, opts);
+  if (r.headers.get("X-From-Cache")) setOffline(true); else if (r.ok) setOffline(false);
+  const data = await r.json().catch(() => ({ error: "Bad response" }));
+  if (!r.ok && !data.error) data.error = "Request failed (" + r.status + ")";
+  return data;
+}
+function setOffline(on) { $("offline-pill").classList.toggle("show", on || !navigator.onLine); }
+window.addEventListener("online", () => setOffline(false));
+window.addEventListener("offline", () => setOffline(true));
+const CONDITION_LABEL = { loose: "Loose", cib: "Complete in box", cib_incomplete: "Incomplete CIB", new_sealed: "New/Sealed", new: "New/Sealed", damaged: "Damaged", unknown: "Condition unknown", buylist: "DK Oldies buylist" };
+const CHANNEL_LABEL = { ebay: "eBay", mercari: "Mercari", buylist: "DK Oldies", local: "Local", other: "Other" };
 
-// ── Search ─────────────────────────────────────────────────────────────────
-document.getElementById("btn-search").addEventListener("click", doSearch);
-document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doSearch(); } });
+// ═══════════════ Tabs ═══════════════
+document.querySelectorAll("nav.tabbar button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function showTab(name) {
+  document.querySelectorAll("nav.tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
+  if (name === "inv") loadInventory();
+  if (name === "more") loadSettingsForm();
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════ Search ═══════════════
+document.querySelectorAll(".chip").forEach(chip => chip.addEventListener("click", () => {
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+  currentConsole = chip.dataset.console;
+}));
+$("btn-search").addEventListener("click", doSearch);
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doSearch(); } });
 
 async function doSearch() {
-  const q = document.getElementById("q").value.trim();
+  const q = $("q").value.trim();
   if (!q) return;
-  hideScanPanel();
-  showSearch();
-
-  const resultsDiv = document.getElementById("results");
-  resultsDiv.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching…</div>';
-
+  $("q").blur();
+  $("scan-panel").classList.add("hidden");
+  showSearchView();
+  $("results").innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching…</div>';
   const params = new URLSearchParams({ q });
   if (currentConsole) params.append("console", currentConsole);
-
-  try {
-    const data = await fetch("/search?" + params).then(r => r.json());
-    renderResults(data);
-  } catch {
-    resultsDiv.innerHTML = '<div class="loading-row" style="color:var(--danger)">Search failed — check connection</div>';
-  }
+  try { renderResults(await api("/search?" + params)); }
+  catch { $("results").innerHTML = '<div class="loading-row err">Search failed — check your connection</div>'; }
 }
 
 function renderResults(results) {
-  const div = document.getElementById("results");
-  if (!results.length) {
-    div.innerHTML = '<div class="loading-row">No results found. Try a different spelling.</div>';
+  if (results.error) { $("results").innerHTML = `<div class="loading-row err">${esc(results.error === "offline" ? "You're offline and this search isn't cached." : results.error)}</div>`; return; }
+  if (!results.length) { $("results").innerHTML = '<div class="loading-row">No results. Try a different spelling or console.</div>'; return; }
+  $("results").innerHTML = results.map((r, i) => {
+    const loose = r.loose_cents || 0, dk = r.dk_buy_cents || 0;
+    const gold = dk && loose && dk > loose;
+    const right = dk
+      ? `<div class="li-price${gold ? " gold" : ""}">${money(dk)}</div><div class="li-label">DK pays${r.dk_buy_condition ? " · " + esc(r.dk_buy_condition) : ""}</div>`
+      : loose ? `<div class="li-price">${money(loose)}</div><div class="li-label">loose</div>` : "";
+    return `<div class="list-item" data-idx="${i}"><div class="li-main"><div class="li-title">${esc(r.name)}</div>
+      <div class="li-sub">${esc(r.console_name)}${r.cib_cents ? " · CIB " + money(r.cib_cents) : ""}</div></div><div class="li-right">${right}</div></div>`;
+  }).join("");
+  $("results").querySelectorAll(".list-item").forEach(el => el.addEventListener("click", () => {
+    const r = results[+el.dataset.idx];
+    openGame({ pc_console: r.pc_console, slug: r.slug, name: r.name, console_key: r.console_key || currentConsole, pc_id: r.pc_id || "" });
+  }));
+}
+
+function renderHistory() {
+  const h = store.get("rp_history", []);
+  if (!h.length) {
+    $("results").innerHTML = `<div class="pad muted small-text" style="line-height:1.5;padding-top:18px">Search a title or tap 📷 to scan a game.<br>
+      Enter the asking price to see profit after fees, the most you should pay, and whether DK Oldies would buy it for more.</div>`;
     return;
   }
-  div.innerHTML = results.map(r => {
-    const loose = r.loose_cents  || 0;
-    const dkBuy = r.dk_buy_cents || 0;
-    const isGold = dkBuy > 0 && loose > 0 && dkBuy > loose;
-    const dkCond = r.dk_buy_condition ? ` · ${r.dk_buy_condition}` : "";
-    const priceHtml = dkBuy
-      ? `<div class="top-price${isGold ? " gold" : ""}">$${cents(dkBuy)}</div><div class="price-label">DK pays${dkCond}</div>`
-      : loose
-        ? `<div class="top-price">$${cents(loose)}</div><div class="price-label">loose</div>`
-        : "";
-    return `<div class="result-item" onclick="loadGame('${esc(r.pc_console)}','${esc(r.slug)}','${esc(r.name)}','${esc(currentConsole)}')">
-      <div class="result-left">
-        <div class="result-name">${esc(r.name)}</div>
-        <div class="result-console">${esc(r.console_name)}</div>
-      </div>
-      <div class="result-price">${priceHtml}</div>
-    </div>`;
-  }).join("");
+  $("results").innerHTML = '<div class="section-label">Recently looked up</div>' + h.map((g, i) =>
+    `<div class="list-item" data-idx="${i}"><div class="li-main"><div class="li-title">${esc(g.title)}</div><div class="li-sub">${esc(g.console_name || g.pc_console)}</div></div>
+     <div class="li-right">${g.loose ? `<div class="li-price">${money(g.loose)}</div><div class="li-label">loose</div>` : ""}</div></div>`).join("");
+  $("results").querySelectorAll(".list-item").forEach(el => el.addEventListener("click", () => openGame(h[+el.dataset.idx])));
+}
+function remember(d) {
+  const entry = { pc_console: d.pc_console, slug: d.slug, name: d.title, title: d.title, console_key: d.console_key,
+                  console_name: d.console_name, pc_id: d.pc_id || "", loose: (d.prices || {}).loose };
+  const h = store.get("rp_history", []).filter(g => !(g.pc_console === d.pc_console && g.slug === d.slug));
+  h.unshift(entry); store.set("rp_history", h.slice(0, 25));
 }
 
-// ── Game detail ────────────────────────────────────────────────────────────
-async function loadGame(pc_console, slug, name, console_key, scanResult) {
-  showDetail();
-  document.getElementById("detail-title").textContent  = name || slug.replace(/-/g, " ");
-  document.getElementById("detail-console").textContent = pc_console.replace(/-/g, " ");
-  document.getElementById("prices-grid").innerHTML      = '<div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>';
-  document.getElementById("dko-section").style.display  = "none";
-  document.getElementById("dko-row").style.display      = "none";
-  document.getElementById("dko-buy-row").style.display  = "none";
-  document.getElementById("deal-result").innerHTML      = "";
-  document.getElementById("pawn-price").value           = "";
-  document.getElementById("condition-row").classList.add("hidden");
+// ═══════════════ Detail ═══════════════
+$("btn-back").addEventListener("click", () => { showSearchView(); if (!$("q").value.trim()) renderHistory(); });
+function showSearchView() { $("search-view").classList.remove("hidden"); $("detail-view").classList.add("hidden"); }
+function showDetailView() { $("search-view").classList.add("hidden"); $("detail-view").classList.remove("hidden"); window.scrollTo(0, 0); }
 
-  if (scanResult && scanResult.identified) showCondition(scanResult);
+async function openGame(g, scan) {
+  showDetailView();
+  current = null;
+  $("d-title").textContent = g.name || g.title || g.slug;
+  $("d-console").textContent = (g.console_name || g.pc_console || "").replace(/-/g, " ");
+  $("d-prices").innerHTML = '<div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span>Loading prices…</div>';
+  $("d-stamp").textContent = ""; $("d-eval").innerHTML = ""; $("ask").value = "";
+  $("d-repro").classList.add("hidden"); $("d-cond").classList.add("hidden");
+  setGrade(scan && scan.condition_grade ? scan.condition_grade : "Good");
+  setCond(scan ? ({ cib: "cib", new_sealed: "new" }[scan.condition] || "loose") : "loose");
+  if (scan && scan.identified) showScanCondition(scan);
 
+  const params = new URLSearchParams({ pc_console: g.pc_console, slug: g.slug, name: g.name || g.title || "",
+                                       console_key: g.console_key || "", pc_id: g.pc_id || "" });
   try {
-    const params = new URLSearchParams({ pc_console, slug, name, console_key });
-    const data   = await fetch("/prices?" + params).then(r => r.json());
-    renderPrices(data, pc_console);
-  } catch {
-    document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="color:var(--danger)">Failed to load prices</div>';
+    const d = await api("/prices?" + params);
+    if (d.error && !d.prices) throw new Error(d.error === "offline" ? "You're offline and this game isn't cached." : d.error);
+    current = d;
+    renderDetail(d);
+    remember(d);
+  } catch (e) {
+    $("d-prices").innerHTML = `<div class="loading-row err" style="grid-column:1/-1">${esc(e.message || "Failed to load prices")}</div>`;
   }
 }
 
-function showCondition(s) {
-  const condMap = { loose:"Loose (Cart Only)", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"Condition Unknown" };
-  document.getElementById("condition-badge").textContent = condMap[s.condition] || s.condition;
-  document.getElementById("condition-grade").textContent = s.condition_grade ? `· ${s.condition_grade}` : "";
-  document.getElementById("condition-notes").textContent = s.condition_notes || "";
-  document.getElementById("resale-notes").textContent    = s.resale_notes || "";
-  document.getElementById("resale-notes-box").classList.toggle("hidden", !s.resale_notes);
-  document.getElementById("condition-row").classList.remove("hidden");
+function showScanCondition(s) {
+  $("d-cond-badge").textContent = (CONDITION_LABEL[s.condition] || s.condition) + (s.condition_grade ? " · " + s.condition_grade : "");
+  $("d-cond-notes").textContent = s.condition_notes || "";
+  $("d-auth-notes").textContent = s.authenticity_notes ? "Authenticity: " + s.authenticity_notes : "";
+  $("d-resale").textContent = s.resale_notes || "";
+  $("d-cond").classList.remove("hidden");
 }
 
-function renderPrices(data, pc_console) {
-  const prices = data.prices || {};
-  currentPrices = prices;
+function renderDetail(d) {
+  const p = d.prices || {};
+  $("d-title").textContent = d.title;
+  if (d.console_name) $("d-console").textContent = d.console_name;
+  $("d-pc").href = d.pc_url || "#";
+  $("d-ebay-sold").href = d.ebay_sold_url || "#";
+  const cards = [["loose", "Loose"], ["cib", "Complete"], ["new", "New"], ["graded", "Graded"]].filter(([k]) => p[k]);
+  let html = cards.map(([k, l]) => `<div class="price-card"><div class="p-label">${l}</div><div class="p-val">${money(p[k])}</div></div>`).join("");
+  if (d.dk_buy_price) html += `<div class="price-card buy"><div class="p-label">DK Oldies pays${d.dk_buy_condition ? " · " + esc(d.dk_buy_condition) : ""}</div><div class="p-val">${money(d.dk_buy_price)}</div></div>`;
+  if (d.dk_price) html += `<div class="price-card"><div class="p-label">DK Oldies sells</div><div class="p-val">${money(d.dk_price)}</div></div>`;
+  if (!html) html = `<div class="loading-row" style="grid-column:1/-1">${esc(d.price_error ? "Price lookup failed: " + d.price_error : "No price data found")}</div>`;
+  $("d-prices").innerHTML = html;
+  $("d-stamp").textContent = "Prices " + (d.cached_at ? "cached " + ago(d.cached_at) : "updated just now") +
+    (d.dk_buy_name ? ` · buylist match: “${d.dk_buy_name}”` : "");
 
-  document.getElementById("detail-title").textContent   = data.title || document.getElementById("detail-title").textContent;
-  document.getElementById("detail-console").textContent = pc_console.replace(/-/g, " ");
-  if (data.pc_url) document.getElementById("pc-link").href = data.pc_url;
-
-  const cards = [["loose","Loose",true],["cib","CIB",false],["new","New/Sealed",false],["graded","Graded",false]].filter(([k]) => prices[k]);
-
-  if (!cards.length) {
-    document.getElementById("prices-grid").innerHTML = '<div class="loading-row" style="grid-column:1/-1">No price data found</div>';
-  } else {
-    document.getElementById("prices-grid").innerHTML = cards.map(([k, label, hi]) =>
-      `<div class="price-card${hi ? " hi" : ""}">
-        <div class="p-label">${label}</div>
-        <div class="p-val">$${cents(prices[k])}</div>
-        <div class="p-note">market avg</div>
-      </div>`
-    ).join("");
+  const rp = d.repro || {};
+  if (rp.level) {
+    $("d-repro").className = "repro" + (rp.level === "high" ? " high" : "");
+    $("d-repro-title").textContent = (rp.level === "high" ? "⚠️ " : "🔍 ") + rp.reason + " Tap for checks.";
+    $("d-repro-list").innerHTML = rp.checks.map(c => `<li>${esc(c)}</li>`).join("");
   }
-
-  // DK Oldies
-  let showSection = false;
-  if (data.dk_price) {
-    document.getElementById("dko-price").textContent = "$" + cents(data.dk_price);
-    document.getElementById("dko-row").style.display = "";
-    if (data.dk_url) document.getElementById("dko-link").href = data.dk_url.startsWith("http") ? data.dk_url : "https://www.dkoldies.com" + data.dk_url;
-    showSection = true;
-  }
-  if (data.dk_buy_price) {
-    document.getElementById("dko-buy-price").textContent = "$" + cents(data.dk_buy_price);
-    const condLabel = data.dk_buy_condition || "";
-    document.getElementById("dko-buy-condition-label").innerHTML =
-      condLabel ? `${condLabel}<br>price` : `from their<br>sell page`;
-    document.getElementById("dko-buy-row").style.display = "";
-    showSection = true;
-  }
-  if (showSection) document.getElementById("dko-section").style.display = "";
-
-  // Auto-focus pawn input
-  setTimeout(() => document.getElementById("pawn-price").focus(), 350);
-
-  const pawnVal = document.getElementById("pawn-price").value;
-  if (pawnVal) updateDeal(parseFloat(pawnVal));
+  setTimeout(() => $("ask").focus(), 300);
+  evaluateCurrent();
 }
 
-// ── Deal calculator ────────────────────────────────────────────────────────
-document.getElementById("pawn-price").addEventListener("input", e => {
-  const v = parseFloat(e.target.value);
-  if (!isNaN(v) && v > 0) updateDeal(v);
-  else document.getElementById("deal-result").innerHTML = "";
+document.querySelectorAll("#grade-row .seg").forEach(b => b.addEventListener("click", () => { setGrade(b.dataset.grade); evaluateCurrent(); }));
+document.querySelectorAll("#cond-row .seg").forEach(b => b.addEventListener("click", () => { setCond(b.dataset.cond); evaluateCurrent(); }));
+function setCond(c) { currentCond = c; document.querySelectorAll("#cond-row .seg").forEach(b => b.classList.toggle("active", b.dataset.cond === c)); }
+function setGrade(g) { currentGrade = g; document.querySelectorAll("#grade-row .seg").forEach(b => b.classList.toggle("active", b.dataset.grade === g)); }
+
+let evalTimer = null;
+$("ask").addEventListener("input", () => { clearTimeout(evalTimer); evalTimer = setTimeout(evaluateCurrent, 200); });
+
+async function evaluateCurrent() {
+  if (!current) return;
+  const asking = toCents($("ask").value);
+  const body = { prices: current.prices || {}, asking_cents: asking, buylist_cents: current.dk_buy_price,
+                 grade: currentGrade, condition: currentCond, settings: settings() };
+  let ev;
+  try { ev = await api("/api/evaluate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
+  catch { ev = localEvaluate(body); }
+  if (ev.error) ev = localEvaluate(body);
+  renderEval(ev, asking);
+}
+
+function renderEval(ev, asking) {
+  if (!ev.rows || !ev.rows.length) { $("d-eval").innerHTML = '<div class="small-text muted" style="margin-top:10px">No guide price for this condition.</div>'; return; }
+  const best = ev.best;
+  let html = "";
+  if (asking != null && best) {
+    html += `<div class="verdict ${best.rating}"><div class="verdict-top"><div>
+        <div class="verdict-label">${best.label}</div>
+        <div class="verdict-sub">Best exit: ${esc(CONDITION_LABEL[best.condition])} on ${esc(CHANNEL_LABEL[best.channel])}</div></div>
+        <div><div class="verdict-profit ${best.profit_cents >= 0 ? "money-pos" : "money-neg"}">${best.profit_cents >= 0 ? "+" : ""}${money(best.profit_cents)}</div>
+        <div class="verdict-sub" style="text-align:right">${best.roi_pct != null ? best.roi_pct + "% return" : ""}</div></div></div></div>`;
+    if (ev.instant_flip) html += `<div class="flip-banner">⚡ Instant flip — DK Oldies pays ${money(current.dk_buy_price)}, more than the ${money(asking)} asking price.</div>`;
+  }
+  if (best) html += `<div class="maxoffer card"><div><div class="small-text muted">Most you should pay</div>
+      <div class="small-text muted">${esc(settings().target_roi_pct)}% return, ${money(settings().min_profit_cents)} min profit</div></div>
+      <div class="big">${money(best.max_offer_cents)}</div></div>`;
+  html += `<table class="exits"><tr><th>Exit</th><th class="num">Sells</th><th class="num">You keep</th><th class="num">${asking != null ? "Profit" : "Max pay"}</th></tr>` +
+    ev.rows.slice().sort((a, b) => b.net_cents - a.net_cents).map(r =>
+      `<tr class="${best && r === best || (best && r.channel === best.channel && r.condition === best.condition) ? "best" : ""}">
+        <td>${esc(r.channel === "buylist" ? "DK buylist" : (CONDITION_LABEL[r.condition] + " · " + CHANNEL_LABEL[r.channel]))}</td>
+        <td class="num">${money(r.sale_cents)}</td><td class="num">${money(r.net_cents)}</td>
+        <td class="num">${asking != null ? `<span class="${r.profit_cents >= 0 ? "money-pos" : "money-neg"}">${money(r.profit_cents)}</span>` : money(r.max_offer_cents)}</td></tr>`).join("") +
+    `</table><div class="small-text muted" style="margin-top:6px">“You keep” is after fees, shipping and supplies (edit in Settings). Grade adjusts guide prices.</div>`;
+  $("d-eval").innerHTML = html;
+}
+
+// Offline fallback for the profit math (mirrors profit.py)
+function localEvaluate(b) {
+  const s = Object.assign({}, FEE_DEFAULTS, b.settings || {});
+  const gf = { Excellent: 1.05, Good: 1.0, Fair: 0.8, Poor: 0.55 }[b.grade] || 1;
+  const net = (ch, sale, boxed) => {
+    if (ch === "buylist") return Math.round(sale - s.buylist_ship_cents);
+    const ship = boxed ? s.ship_boxed_cents : s.ship_cart_cents;
+    const fees = ch === "ebay" ? sale * s.ebay_fee_pct / 100 + (sale <= 1000 ? s.ebay_order_fee_low : s.ebay_order_fee_high)
+                               : sale * (s.mercari_fee_pct + s.mercari_proc_pct) / 100 + s.mercari_proc_flat;
+    return Math.round(sale - fees - ship - s.supplies_cents);
+  };
+  const maxOffer = n => n <= 0 ? 0 : Math.max(0, Math.floor(Math.min(n / (1 + s.target_roi_pct / 100), n - s.min_profit_cents)));
+  const rate = (p, c) => { const roi = c > 0 ? p / c * 100 : null; if (p < s.min_profit_cents || (roi != null && roi < 20)) return "pass"; if (roi == null || roi >= 100) return "steal"; return roi >= s.target_roi_pct ? "good" : "fair"; };
+  const L = { steal: "STEAL", good: "GOOD DEAL", fair: "THIN", pass: "PASS" };
+  const rows = [];
+  const add = (cond, ch, sale, n) => { const r = { condition: cond, channel: ch, sale_cents: sale, net_cents: n, max_offer_cents: maxOffer(n) };
+    if (b.asking_cents != null) { r.profit_cents = n - b.asking_cents; r.roi_pct = b.asking_cents > 0 ? Math.round(r.profit_cents / b.asking_cents * 1000) / 10 : null; r.rating = rate(r.profit_cents, b.asking_cents); r.label = L[r.rating]; }
+    rows.push(r); };
+  for (const c of (b.condition ? [b.condition] : ["loose", "cib", "new"])) { const v = b.prices[c] ? Math.round(b.prices[c] * gf) : 0; if (!v) continue;
+    for (const ch of ["ebay", "mercari"]) add(c, ch, v, net(ch, v, c !== "loose")); }
+  if (b.buylist_cents) add("buylist", "buylist", b.buylist_cents, net("buylist", b.buylist_cents));
+  const best = rows.reduce((a, r) => !a || r.net_cents > a.net_cents ? r : a, null);
+  return { rows, best, instant_flip: !!(b.buylist_cents && b.asking_cents != null && net("buylist", b.buylist_cents) > b.asking_cents) };
+}
+
+$("d-add-inv").addEventListener("click", () => {
+  if (!current) return;
+  const p = current.prices || {};
+  openSheet({ title: current.title, console_key: current.console_key, pc_console: current.pc_console, slug: current.slug,
+              condition: currentCond, paid_cents: toCents($("ask").value), market_cents: p[currentCond] || null });
 });
 
-async function updateDeal(dollars) {
-  const pawnCents = Math.round(dollars * 100);
-  const params = new URLSearchParams({ pawn: pawnCents });
-  if (currentPrices.loose) params.append("loose", currentPrices.loose);
-  if (currentPrices.cib)   params.append("cib",   currentPrices.cib);
-  if (currentPrices.new)   params.append("new",   currentPrices.new);
-
-  try {
-    const data = await fetch("/deal?" + params).then(r => r.json());
-    const condOrder = [["loose","Selling loose"],["cib","Selling CIB"],["new","Selling new/sealed"]];
-    document.getElementById("deal-result").innerHTML = condOrder
-      .filter(([k]) => data[k])
-      .map(([k, sublabel]) => {
-        const d = data[k];
-        return `<div class="deal-card ${d.tag}">
-          <div class="deal-top">
-            <div>
-              <div class="deal-verdict">${d.emoji} ${d.label}</div>
-              <div class="deal-cond">${sublabel}</div>
-            </div>
-            <div>
-              <div class="deal-profit-val" style="color:${d.profit >= 0 ? "var(--steal)" : "var(--danger)"}">
-                ${d.profit >= 0 ? "+" : ""}$${cents(d.profit)}
-              </div>
-              <div class="deal-margin">${d.margin_pct}% margin</div>
-            </div>
-          </div>
-        </div>`;
-      }).join("") || "";
-  } catch { /* ignore */ }
-}
-
-// ── Camera Scan ────────────────────────────────────────────────────────────
-document.getElementById("btn-open-scan").addEventListener("click", () => {
-  const p = document.getElementById("scan-panel");
-  const showing = p.style.display === "block";
-  p.style.display = showing ? "none" : "block";
-  if (!showing) { scanContext = null; scanPhotoCount = 0; }
+// ═══════════════ Single-game scan ═══════════════
+$("btn-open-scan").addEventListener("click", () => {
+  const p = $("scan-panel"); p.classList.toggle("hidden");
+  if (!p.classList.contains("hidden")) { scanContext = null; scanCount = 0; $("btn-take-photo").textContent = "📸 Take Photo"; }
 });
-document.getElementById("btn-take-photo").addEventListener("click",    () => document.getElementById("scan-file").click());
-document.getElementById("btn-another-photo").addEventListener("click", () => document.getElementById("scan-file").click());
-
-document.getElementById("scan-file").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const preview  = document.getElementById("scan-preview");
-  preview.src    = URL.createObjectURL(file);
-  preview.style.display = "block";
-
-  const status   = document.getElementById("scan-status");
-  const photoReq = document.getElementById("photo-request-box");
-  const btn2     = document.getElementById("btn-another-photo");
-
-  status.className = "scan-status active";
-  status.innerHTML = '<span class="spinner"></span>Analyzing with Claude…';
-  photoReq.style.display = "none";
-  btn2.style.display = "none";
-
-  const fd = new FormData();
-  fd.append("image", file);
+$("btn-take-photo").addEventListener("click", () => $("scan-file").click());
+$("scan-file").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  $("scan-preview").src = URL.createObjectURL(file); $("scan-preview").style.display = "block";
+  const status = $("scan-status"), req = $("photo-request-box");
+  status.innerHTML = '<span class="spinner"></span>Identifying…'; req.classList.add("hidden");
+  const fd = new FormData(); fd.append("image", file);
   let endpoint = "/scan";
-  if (scanContext && scanPhotoCount > 0) {
-    endpoint = "/scan/followup";
-    fd.append("context", JSON.stringify(scanContext));
-  }
-
+  if (scanContext && scanCount > 0) { endpoint = "/scan/followup"; fd.append("context", JSON.stringify(scanContext)); }
   try {
-    const data = await fetch(endpoint, { method: "POST", body: fd }).then(r => r.json());
-    if (data.error) { status.className = "scan-status"; status.textContent = "Error: " + data.error; return; }
-
-    scanContext = data;
-    scanPhotoCount++;
-
-    if (!data.identified) {
-      status.className = "scan-status";
-      status.textContent = "Couldn't identify the game. Try a clearer photo.";
-      btn2.style.display = "block";
-      return;
-    }
-    if (data.needs_more_photos && scanPhotoCount < MAX_SCAN_PHOTOS) {
-      status.className = "scan-status";
+    const data = await api(endpoint, { method: "POST", body: fd });
+    if (data.error) { status.textContent = data.error === "offline" ? "Scanning needs a connection." : "Error: " + data.error; return; }
+    scanContext = data; scanCount++;
+    if (!data.identified) { status.textContent = "Couldn't identify the game. Try a clearer photo of the label or spine."; $("btn-take-photo").textContent = "📸 Try again"; return; }
+    if (data.needs_more_photos && scanCount < MAX_SCAN_PHOTOS) {
       status.textContent = `Identified: ${data.game_name} (${data.console_display || ""})`;
-      photoReq.textContent = "📸 " + data.photo_request;
-      photoReq.style.display = "block";
-      btn2.style.display = "block";
-      btn2.textContent = "📸 Take Another Photo";
-      return;
+      req.textContent = "📸 " + (data.photo_request || "Take one more photo"); req.classList.remove("hidden");
+      $("btn-take-photo").textContent = "📸 Take Another Photo"; return;
     }
-
-    status.className = "scan-status";
-    status.textContent = `Found: ${data.game_name} · ${data.condition_grade || ""} ${conditionLabel(data.condition)}`;
-    photoReq.style.display = "none";
-    btn2.style.display = "none";
-
-    document.getElementById("q").value = data.game_name;
-    if (data.console_key) {
-      currentConsole = data.console_key;
-      document.querySelectorAll(".chip").forEach(c => {
-        c.classList.toggle("active", c.dataset.console === data.console_key);
-      });
-    }
-
-    const params = new URLSearchParams({ q: data.game_name });
-    if (data.console_key) params.append("console", data.console_key);
-    const results = await fetch("/search?" + params).then(r => r.json());
-
-    if (results.length > 0) {
-      hideScanPanel();
-      loadGame(results[0].pc_console, results[0].slug, results[0].name, data.console_key || "", data);
-    } else {
-      hideScanPanel(); showSearch(); renderResults(results);
-    }
-  } catch (err) {
-    status.className = "scan-status"; status.textContent = "Scan failed: " + err.message;
-  }
-  e.target.value = "";
+    status.textContent = `Found: ${data.game_name}`;
+    $("q").value = data.game_name;
+    if (data.console_key) { currentConsole = data.console_key; document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c.dataset.console === data.console_key)); }
+    const params = new URLSearchParams({ q: data.game_name }); if (data.console_key) params.append("console", data.console_key);
+    const results = await api("/search?" + params);
+    $("scan-panel").classList.add("hidden");
+    if (Array.isArray(results) && results.length) {
+      const r = results[0];
+      openGame({ pc_console: r.pc_console, slug: r.slug, name: r.name, console_key: data.console_key || r.console_key || "", pc_id: r.pc_id || "" }, data);
+    } else { showSearchView(); renderResults(Array.isArray(results) ? results : []); }
+  } catch (err) { status.textContent = "Scan failed: " + err.message; }
+  finally { e.target.value = ""; }
 });
 
-// ── Navigation ─────────────────────────────────────────────────────────────
-function showDetail() {
-  document.getElementById("results").style.display = "none";
-  document.getElementById("detail").style.display  = "block";
-  window.scrollTo(0, 0);
-}
-function showSearch() {
-  document.getElementById("results").style.display = "block";
-  document.getElementById("detail").style.display  = "none";
-}
-function hideScanPanel() { document.getElementById("scan-panel").style.display = "none"; }
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function cents(c) {
-  if (c == null) return "—";
-  const abs = Math.abs(c);
-  return (c < 0 ? "-" : "") + (abs / 100).toFixed(2);
-}
-function esc(s) { return (s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
-function conditionLabel(c) {
-  return { loose:"Loose", cib:"Complete in Box", cib_incomplete:"Incomplete CIB", new_sealed:"New/Sealed", damaged:"Damaged", unknown:"" }[c] || c || "";
-}
-
-// ── Local Deals ─────────────────────────────────────────────────────────────
-let localLat = null, localLon = null;
-
-document.getElementById("btn-open-local").addEventListener("click", () => {
-  const p = document.getElementById("local-panel");
-  const showing = p.style.display === "block";
-  p.style.display = showing ? "none" : "block";
-  if (!showing) hideScanPanel();
+// ═══════════════ Lot ═══════════════
+let lastLot = null;
+$("btn-lot-photo").addEventListener("click", () => $("lot-file").click());
+$("lot-file").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  $("lot-preview").src = URL.createObjectURL(file); $("lot-preview").style.display = "block";
+  $("lot-results").innerHTML = '<div class="loading-row"><span class="spinner"></span>Identifying games and pricing the lot… this can take 30 seconds</div>';
+  const fd = new FormData(); fd.append("image", file); fd.append("settings", JSON.stringify(settings()));
+  try { renderLot(await api("/scan/lot", { method: "POST", body: fd })); }
+  catch (err) { $("lot-results").innerHTML = `<div class="loading-row err">${esc(err.message)}</div>`; }
+  finally { e.target.value = ""; }
+});
+$("btn-lot-text").addEventListener("click", async () => {
+  const items = $("lot-text").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const m = l.match(/^(.*?)(?:,\s*([a-z0-9]+))?\s*$/i);
+    return { game_name: m[1].trim(), console_key: (m[2] || "").toLowerCase(), condition: "loose", quantity: 1 };
+  });
+  if (!items.length) return;
+  $("lot-preview").style.display = "none";
+  $("lot-results").innerHTML = '<div class="loading-row"><span class="spinner"></span>Pricing ' + items.length + ' games…</div>';
+  try { renderLot(await api("/api/lot/price", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items, settings: settings() }) })); }
+  catch (err) { $("lot-results").innerHTML = `<div class="loading-row err">${esc(err.message)}</div>`; }
 });
 
-document.getElementById("btn-detect").addEventListener("click", detectLocation);
-
-function detectLocation() {
-  const status = document.getElementById("loc-status");
-  if (!navigator.geolocation) { status.textContent = "Geolocation not available"; return; }
-  status.textContent = "Detecting…";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      localLat = pos.coords.latitude;
-      localLon = pos.coords.longitude;
-      status.textContent = `${localLat.toFixed(3)}, ${localLon.toFixed(3)}`;
-      searchLocal();
-    },
-    () => { status.textContent = "Location denied — allow access and retry"; },
-    { enableHighAccuracy: false, timeout: 10000 }
-  );
-}
-
-async function searchLocal() {
-  if (!localLat || !localLon) {
-    document.getElementById("local-results").innerHTML =
-      '<div class="loading-row" style="color:var(--warn)">⚠️ Detect your location first</div>';
-    return;
-  }
-  const q      = document.getElementById("local-q").value.trim() || "retro games";
-  const radius = document.getElementById("local-radius").value;
-  const div    = document.getElementById("local-results");
-  div.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching eBay…</div>';
-  try {
-    const params = new URLSearchParams({ lat: localLat, lon: localLon, radius, q });
-    const data   = await fetch("/api/local-deals?" + params).then(r => r.json());
-    if (data.error) {
-      div.innerHTML = `<div class="loading-row" style="color:var(--danger)">⚠️ ${escHtml(data.error)}</div>`;
-      return;
-    }
-    renderLocalResults(data.listings || []);
-  } catch {
-    div.innerHTML = '<div class="loading-row" style="color:var(--danger)">Search failed — check connection</div>';
-  }
-}
-
-function renderLocalResults(listings) {
-  const div = document.getElementById("local-results");
-  if (!listings.length) {
-    div.innerHTML = '<div class="loading-row">No local listings found. Try a wider radius or different search.</div>';
-    return;
-  }
-  div.innerHTML = listings.map(item => {
-    const price = item.price_cents ? `$${cents(item.price_cents)}` : "—";
-    const dist  = item.distance != null ? `${parseFloat(item.distance).toFixed(1)} mi` : (item.location || "");
-    const meta  = [item.condition, dist].filter(Boolean).join(" · ");
-    const img   = item.image
-      ? `<img class="ebay-thumb" src="${escHtml(item.image)}" loading="lazy" alt="">`
-      : `<div class="ebay-thumb"></div>`;
-    return `<a class="ebay-card" href="${escHtml(item.url)}" target="_blank" rel="noopener">
-      ${img}
-      <div class="ebay-info">
-        <div class="ebay-title">${escHtml(item.title)}</div>
-        <div class="ebay-meta">${escHtml(meta)}</div>
-      </div>
-      <div class="ebay-price-col">
-        <div class="ebay-price">${price}</div>
-        <div class="ebay-badge">Local pickup</div>
-      </div>
-    </a>`;
+function renderLot(d) {
+  if (d.error) { $("lot-results").innerHTML = `<div class="loading-row err">${esc(d.error === "offline" ? "Pricing a lot needs a connection." : d.error)}</div>`; return; }
+  lastLot = d;
+  const items = d.items || [];
+  let html = `<div class="totals">
+    <div class="stat hi"><div class="k">Most you should pay</div><div class="v">${money(d.max_offer_cents)}</div></div>
+    <div class="stat"><div class="k">Guide value</div><div class="v">${money(d.total_market_cents)}</div></div>
+    <div class="stat"><div class="k">You'd keep (best exits)</div><div class="v">${money(d.total_net_cents)}</div></div>
+    <div class="stat"><div class="k">DK buylist floor</div><div class="v">${money(d.buylist_floor_cents)}</div></div></div>
+    <div class="pad" style="padding-top:0"><div class="ask-row"><span class="ask-prefix">$</span>
+      <input type="number" id="lot-ask" class="ask-input" placeholder="Their price for the lot" inputmode="decimal"></div><div id="lot-verdict"></div></div>`;
+  if (d.notes) html += `<div class="pad small-text muted" style="padding-top:0">${esc(d.notes)}</div>`;
+  if (d.unidentified_count) html += `<div class="pad small-text" style="padding-top:0;color:var(--warn)">${d.unidentified_count} item(s) couldn't be identified — check them by hand.</div>`;
+  html += `<div class="section-label">${d.priced_count} of ${items.length} games priced</div>`;
+  html += items.map((it, i) => {
+    const flag = it.repro && it.repro.level ? ` <span class="lot-flag">⚠ check authenticity</span>` : "";
+    const low = it.confidence === "low" ? ` <span class="lot-flag">? low confidence</span>` : "";
+    return `<div class="list-item" data-idx="${i}"><div class="li-main"><div class="li-title">${esc(it.title || it.game_name)}${it.quantity > 1 ? " ×" + it.quantity : ""}</div>
+      <div class="li-sub">${esc(it.console_key || "")} · ${esc(CONDITION_LABEL[it.price_condition] || it.condition)}${it.dk_buy_cents ? " · DK " + money(it.dk_buy_cents) : ""}${it.error ? " · " + esc(it.error) : ""}${flag}${low}</div></div>
+      <div class="li-right"><div class="li-price">${money(it.market_cents)}</div><div class="li-label">pay ≤ ${money(it.max_offer_cents)}</div></div></div>`;
   }).join("");
+  html += `<div class="pad"><button class="btn ghost block" id="btn-lot-inv">＋ Bought it — add all to inventory</button></div>`;
+  $("lot-results").innerHTML = html;
+  $("lot-results").querySelectorAll(".list-item").forEach(el => el.addEventListener("click", () => {
+    const it = items[+el.dataset.idx]; if (!it.slug) return;
+    showTab("price"); openGame({ pc_console: it.pc_console, slug: it.slug, name: it.title, console_key: it.console_key, pc_id: it.pc_id });
+  }));
+  $("lot-ask").addEventListener("input", () => {
+    const a = toCents($("lot-ask").value);
+    if (a == null) { $("lot-verdict").innerHTML = ""; return; }
+    const p = d.total_net_cents - a, roi = a > 0 ? Math.round(p / a * 100) : null;
+    const tag = a <= d.max_offer_cents ? (a <= d.max_offer_cents * 0.6 ? "steal" : "good") : (p > 0 ? "fair" : "pass");
+    const L = { steal: "STEAL", good: "GOOD DEAL", fair: "THIN", pass: "PASS" };
+    $("lot-verdict").innerHTML = `<div class="verdict ${tag}"><div class="verdict-top"><div><div class="verdict-label">${L[tag]}</div>
+      <div class="verdict-sub">If every game sells at its best exit</div></div><div><div class="verdict-profit ${p >= 0 ? "money-pos" : "money-neg"}">${p >= 0 ? "+" : ""}${money(p)}</div>
+      <div class="verdict-sub" style="text-align:right">${roi != null ? roi + "% return" : ""}</div></div></div></div>` +
+      (d.buylist_floor_cents > a ? `<div class="flip-banner">⚡ DK Oldies would pay ${money(d.buylist_floor_cents)} for the priced games — more than the asking price.</div>` : "");
+  });
+  $("btn-lot-inv").addEventListener("click", () => addLotToInventory(d));
 }
 
-function escHtml(s) {
-  if (!s) return "";
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+async function addLotToInventory(d) {
+  const paid = toCents(($("lot-ask") || {}).value || "");
+  const items = (d.items || []).filter(i => i.title || i.game_name);
+  if (!items.length) return;
+  const totalMarket = items.reduce((s, i) => s + (i.market_cents || 0) * i.quantity, 0) || 1;
+  const source = prompt("Where did you buy this lot?", "") || "";
+  for (const it of items) {
+    for (let q = 0; q < it.quantity; q++) {
+      const share = paid != null ? Math.round(paid * (it.market_cents || 0) / totalMarket) : 0;  // split cost by value
+      await api("/api/inventory", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: it.title || it.game_name, console_key: it.console_key, pc_console: it.pc_console, slug: it.slug,
+                               condition: it.price_condition || "loose", paid_cents: share, market_cents: it.market_cents, source }) });
+    }
+  }
+  showTab("inv");
 }
 
-// ── Service Worker ─────────────────────────────────────────────────────────
+// ═══════════════ Inventory ═══════════════
+let invFilter = "unsold", invItems = [];
+document.querySelectorAll("[data-inv]").forEach(b => b.addEventListener("click", () => {
+  invFilter = b.dataset.inv; document.querySelectorAll("[data-inv]").forEach(x => x.classList.toggle("active", x === b)); renderInventory();
+}));
+$("btn-inv-add").addEventListener("click", () => openSheet({ condition: "loose" }));
+$("inv-csv").href = "/api/inventory.csv?device=" + DEVICE;
+
+async function loadInventory() {
+  $("inv-list").innerHTML = '<div class="loading-row"><span class="spinner"></span>Loading…</div>';
+  const d = await api("/api/inventory").catch(() => ({ error: "offline" }));
+  if (d.error) { $("inv-list").innerHTML = `<div class="loading-row err">${d.error === "offline" ? "Inventory needs a connection." : esc(d.error)}</div>`; return; }
+  invItems = d.items;
+  const s = d.summary;
+  $("inv-summary").innerHTML = `
+    <div class="stat hi"><div class="k">Profit (sold)</div><div class="v">${money(s.profit_cents)}</div></div>
+    <div class="stat"><div class="k">Revenue</div><div class="v">${money(s.revenue_cents)}</div></div>
+    <div class="stat"><div class="k">In stock (${s.unsold_count})</div><div class="v">${money(s.unsold_cost_cents)}</div><div class="small-text muted">guide ${money(s.unsold_market_cents)}</div></div>
+    <div class="stat"><div class="k">Avg days to sell</div><div class="v">${s.avg_days_to_sell != null ? s.avg_days_to_sell : "—"}</div></div>`;
+  renderInventory();
+}
+function renderInventory() {
+  const list = invItems.filter(i => invFilter === "all" || (invFilter === "sold" ? i.sold_cents != null : i.sold_cents == null));
+  if (!list.length) { $("inv-list").innerHTML = `<div class="loading-row">${invFilter === "sold" ? "Nothing sold yet." : "No items yet. Add what you buy from the Price or Lot tab."}</div>`; return; }
+  $("inv-list").innerHTML = list.map(i => {
+    const sold = i.sold_cents != null;
+    const p = sold ? i.sold_cents - (i.paid_cents || 0) - (i.fees_cents || 0) - (i.ship_cents || 0) : null;
+    return `<div class="list-item" data-id="${i.id}"><div class="li-main"><div class="li-title">${esc(i.title)}</div>
+      <div class="li-sub">${esc(i.console_key || "")} · paid ${money(i.paid_cents)}${i.source ? " · " + esc(i.source) : ""}</div></div>
+      <div class="li-right">${sold ? `<div class="li-price ${p >= 0 ? "" : "money-neg"}">${p >= 0 ? "+" : ""}${money(p)}</div><div class="li-label">sold ${money(i.sold_cents)}</div>`
+                                   : `<div class="li-price">${money(i.market_cents)}</div><div class="li-label">guide</div>`}</div></div>`;
+  }).join("");
+  $("inv-list").querySelectorAll(".list-item").forEach(el => el.addEventListener("click", () => openSheet(invItems.find(i => i.id === +el.dataset.id))));
+}
+
+function openSheet(it) {
+  $("sheet-title").textContent = it.id ? "Edit item" : "Add item";
+  $("f-id").value = it.id || "";
+  $("f-title").value = it.title || ""; $("f-console_key").value = it.console_key || ""; $("f-condition").value = it.condition || "loose";
+  $("f-paid").value = fromCents(it.paid_cents); $("f-market").value = fromCents(it.market_cents); $("f-source").value = it.source || "";
+  $("f-sold").value = fromCents(it.sold_cents); $("f-channel").value = it.channel || ""; $("f-fees").value = fromCents(it.fees_cents);
+  $("f-ship").value = fromCents(it.ship_cents); $("f-notes").value = it.notes || "";
+  $("f-delete").classList.toggle("hidden", !it.id);
+  $("sheet").dataset.pc = JSON.stringify({ pc_console: it.pc_console || "", slug: it.slug || "" });
+  $("sheet").classList.add("show"); $("sheet-bg").classList.add("show");
+}
+function closeSheet() { $("sheet").classList.remove("show"); $("sheet-bg").classList.remove("show"); }
+$("sheet-bg").addEventListener("click", closeSheet);
+$("f-cancel").addEventListener("click", closeSheet);
+// Fill in estimated fees when a sale price + channel are entered and fees are blank
+["f-sold", "f-channel"].forEach(id => $(id).addEventListener("change", () => {
+  const sold = toCents($("f-sold").value), ch = $("f-channel").value, s = settings();
+  if (sold == null || $("f-fees").value) return;
+  let fees = null;
+  if (ch === "ebay") fees = sold * s.ebay_fee_pct / 100 + (sold <= 1000 ? s.ebay_order_fee_low : s.ebay_order_fee_high);
+  if (ch === "mercari") fees = sold * (s.mercari_fee_pct + s.mercari_proc_pct) / 100 + s.mercari_proc_flat;
+  if (ch === "buylist" || ch === "local") fees = 0;
+  if (fees != null) $("f-fees").value = fromCents(Math.round(fees));
+}));
+$("f-save").addEventListener("click", async () => {
+  const title = $("f-title").value.trim(); if (!title) { $("f-title").focus(); return; }
+  const sold = toCents($("f-sold").value);
+  const body = Object.assign(JSON.parse($("sheet").dataset.pc || "{}"), {
+    title, console_key: $("f-console_key").value, condition: $("f-condition").value, paid_cents: toCents($("f-paid").value) || 0,
+    market_cents: toCents($("f-market").value), source: $("f-source").value.trim(), sold_cents: sold, channel: $("f-channel").value,
+    fees_cents: toCents($("f-fees").value), ship_cents: toCents($("f-ship").value), notes: $("f-notes").value.trim() });
+  const id = $("f-id").value;
+  const orig = id ? invItems.find(i => i.id === +id) : null;
+  if (sold != null && !(orig && orig.sold_at)) body.sold_at = Math.floor(Date.now() / 1000);
+  if (sold == null) body.sold_at = null;
+  const r = await api(id ? "/api/inventory/" + id : "/api/inventory", { method: id ? "PATCH" : "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (r.error) { alert(r.error); return; }
+  closeSheet();
+  if ($("tab-inv").classList.contains("active")) loadInventory(); else showTab("inv");
+});
+$("f-delete").addEventListener("click", async () => {
+  const id = $("f-id").value; if (!id || !confirm("Delete this item?")) return;
+  await api("/api/inventory/" + id, { method: "DELETE" }); closeSheet(); loadInventory();
+});
+
+// ═══════════════ Settings ═══════════════
+function loadSettingsForm() {
+  const s = settings();
+  document.querySelectorAll("[id^='s-']").forEach(inp => {
+    const k = inp.id.slice(2); inp.value = inp.hasAttribute("data-money") ? fromCents(s[k]) : s[k];
+  });
+  $("local-zip").value = store.get("rp_zip", "");
+}
+document.querySelectorAll("[id^='s-']").forEach(inp => inp.addEventListener("change", () => {
+  const cur = store.get("rp_settings", {}), k = inp.id.slice(2);
+  const v = inp.hasAttribute("data-money") ? toCents(inp.value) : parseFloat(inp.value);
+  if (v == null || isNaN(v) || v < 0) { delete cur[k]; } else { cur[k] = v; }
+  store.set("rp_settings", cur); loadSettingsForm();
+}));
+$("btn-reset-settings").addEventListener("click", () => { store.set("rp_settings", {}); loadSettingsForm(); });
+
+// ═══════════════ eBay local ═══════════════
+$("btn-local").addEventListener("click", async () => {
+  const zip = $("local-zip").value.trim(), out = $("local-results");
+  if (!/^\d{5}$/.test(zip)) { out.innerHTML = '<div class="small-text err">Enter a 5-digit ZIP.</div>'; return; }
+  store.set("rp_zip", zip);
+  out.innerHTML = '<div class="loading-row"><span class="spinner"></span>Searching eBay…</div>';
+  const params = new URLSearchParams({ zip, radius: $("local-radius").value, q: $("local-q").value.trim() || "retro video games" });
+  const d = await api("/api/local-deals?" + params).catch(() => ({ error: "Search failed — check your connection" }));
+  if (d.error) { out.innerHTML = `<div class="small-text err">${esc(d.error)}</div>`; return; }
+  out.innerHTML = d.listings.map(it => `<a class="ebay-card" href="${esc(it.url)}" target="_blank" rel="noopener">
+      ${it.image ? `<img class="ebay-thumb" src="${esc(it.image)}" loading="lazy" alt="">` : '<div class="ebay-thumb"></div>'}
+      <div style="flex:1;min-width:0"><div class="li-title" style="font-size:0.86rem">${esc(it.title)}</div>
+      <div class="li-sub">${esc([it.condition, it.location].filter(Boolean).join(" · "))}</div></div>
+      <div class="li-price">${money(it.price_cents)}</div></a>`).join("");
+});
+
+// ═══════════════ Boot ═══════════════
+renderHistory();
+setOffline(false);
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/static/sw.js").catch(() => {}));
+  window.addEventListener("load", async () => {
+    try {
+      // Remove the old /static/ scoped worker from v1
+      for (const r of await navigator.serviceWorker.getRegistrations()) if (r.scope.endsWith("/static/")) r.unregister();
+      await navigator.serviceWorker.register("/sw.js");
+    } catch {}
+  });
 }
 </script>
 </body>

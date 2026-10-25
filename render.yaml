@@ -2,11 +2,24 @@ services:
   - type: web
     name: retro-pricer
     runtime: python
+    # A paid instance is needed for the persistent disk (inventory data) and
+    # to avoid free-tier cold starts that can take close to a minute.
+    plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
-    plan: free
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --worker-class gthread --timeout 120
+    healthCheckPath: /health
+    disk:
+      name: retro-pricer-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: PRICECHARTING_TOKEN
+        sync: false
+      - key: PRICECHARTING_SCRAPE
+        value: "1"
+      - key: DB_PATH
+        value: /var/data/retro_pricer.db
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.12.7
